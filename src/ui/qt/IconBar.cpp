@@ -59,11 +59,22 @@ void IconBar::setupControls() {
   
   m_slider->setEnabled(false);
   m_slider->setToolTip("Seek");
+  connect(m_slider, &SeekBar::sliderPressed, [this]() {
+    auto& seqPlayer = SequencePlayer::the();
+    m_resumePlaybackAfterSeekBarDrag = seqPlayer.playing();
+    if (m_resumePlaybackAfterSeekBarDrag) {
+      seqPlayer.pause();
+    }
+  });
   connect(m_slider, &SeekBar::sliderMoved, [this](int value) {
     seekingTo(value, PositionChangeOrigin::SeekBar);
   });
   connect(m_slider, &SeekBar::sliderReleased, [this]() {
     seekingTo(m_slider->value(), PositionChangeOrigin::SeekBar);
+    if (m_resumePlaybackAfterSeekBarDrag) {
+      m_resumePlaybackAfterSeekBarDrag = false;
+      SequencePlayer::the().resume();
+    }
   });
   layout()->addWidget(m_slider);
 

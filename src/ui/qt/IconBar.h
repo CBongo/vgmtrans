@@ -40,6 +40,7 @@ private:
   SeekBar *m_slider{};
   MarqueeLabel *m_title;
   bool m_skipNextPlaybackSliderUpdate = false;
+  bool m_resumePlaybackAfterSeekBarDrag = false;
   inline static QIcon s_playicon;
   inline static QIcon s_pauseicon;
 };
