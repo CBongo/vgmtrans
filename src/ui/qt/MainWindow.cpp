@@ -135,6 +135,9 @@ MainWindow::MainWindow() : QMainWindow(nullptr) {
 void MainWindow::createElements() {
   setDocumentMode(true);
   setTabPosition(Qt::BottomDockWidgetArea, QTabWidget::North);
+  setStyleSheet(QStringLiteral(
+      "QMainWindow::separator { background: transparent; }"
+      "QMainWindow::separator:hover { background: transparent; }"));
 
   m_rawfile_dock = new QDockWidget("Raw files");
   m_rawfile_dock->setWidget(new RawFileListView());
