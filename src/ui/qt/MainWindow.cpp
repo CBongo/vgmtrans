@@ -33,6 +33,7 @@
 #include "IconBar.h"
 #include "About.h"
 #include "Logger.h"
+#include "ManualCollectionDialog.h"
 #include "SequencePlayer.h"
 #include "services/NotificationCenter.h"
 #include "services/Settings.h"
@@ -133,17 +134,73 @@ void MainWindow::createElements() {
   setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
   setCorner(Qt::BottomRightCorner, Qt::BottomDockWidgetArea);
 
+  const auto installTitleBar = [this](QDockWidget *dock, const QString& title, TitleBar::Buttons buttons) {
+    auto *titleBar = new TitleBar(title, buttons, dock);
+    connect(titleBar, &TitleBar::hideRequested, dock, &QDockWidget::hide);
+    connect(titleBar, &TitleBar::addRequested, this, [this]() {
+      ManualCollectionDialog dialog(this);
+      dialog.exec();
+    });
+    connect(titleBar, &TitleBar::collapseToggled, this, [this, dock, titleBar](bool collapsed) {
+      QWidget *dockContents = dock->widget();
+      if (!dockContents) {
+        return;
+      }
+
+      const int titleBarHeight = titleBar->height() > 0 ? titleBar->height() : titleBar->sizeHint().height();
+      if (collapsed) {
+        const int currentHeight = dock->height();
+        dock->setProperty("expandedHeight", currentHeight > titleBarHeight ? currentHeight
+                                                                           : dock->sizeHint().height());
+        dockContents->setProperty("minimumHeightBeforeCollapse", dockContents->minimumHeight());
+        dockContents->setProperty("maximumHeightBeforeCollapse", dockContents->maximumHeight());
+        dockContents->setProperty(
+            "verticalSizePolicyBeforeCollapse",
+            static_cast<int>(dockContents->sizePolicy().verticalPolicy()));
+        QSizePolicy collapsedPolicy = dockContents->sizePolicy();
+        collapsedPolicy.setVerticalPolicy(QSizePolicy::Fixed);
+        dockContents->setSizePolicy(collapsedPolicy);
+        dockContents->setMinimumHeight(0);
+        dockContents->setMaximumHeight(0);
+      } else {
+        QSizePolicy expandedPolicy = dockContents->sizePolicy();
+        expandedPolicy.setVerticalPolicy(
+            static_cast<QSizePolicy::Policy>(
+                dockContents->property("verticalSizePolicyBeforeCollapse").toInt()));
+        dockContents->setSizePolicy(expandedPolicy);
+        dockContents->setMinimumHeight(dockContents->property("minimumHeightBeforeCollapse").toInt());
+        const int maximumHeight = dockContents->property("maximumHeightBeforeCollapse").toInt();
+        dockContents->setMaximumHeight(maximumHeight > 0 ? maximumHeight : QWIDGETSIZE_MAX);
+      }
+      dockContents->updateGeometry();
+      dock->updateGeometry();
+
+      const int targetHeight = collapsed
+                                   ? titleBarHeight
+                                   : std::max(dock->property("expandedHeight").toInt(),
+                                              dockContents->sizeHint().height() + titleBarHeight);
+      if (dock->isFloating()) {
+        dock->resize(dock->width(), targetHeight);
+      } else {
+        resizeDocks({dock}, {targetHeight}, Qt::Vertical);
+      }
+    });
+    dock->setTitleBarWidget(titleBar);
+  };
+
   m_rawfile_dock = new QDockWidget("Raw files");
   m_rawfile_dock->setAllowedAreas(Qt::LeftDockWidgetArea);
   m_rawfile_dock->setWidget(new RawFileListView());
   m_rawfile_dock->setContentsMargins(0, 0, 0, 0);
-  m_rawfile_dock->setTitleBarWidget(new TitleBar("Scanned Files"));
+  installTitleBar(m_rawfile_dock, "Scanned Files",
+                  TitleBar::HideButton | TitleBar::CollapseButton);
 
   m_vgmfile_dock = new QDockWidget("Detected Music Files");
   m_vgmfile_dock->setAllowedAreas(Qt::LeftDockWidgetArea);
   m_vgmfile_dock->setWidget(new VGMFileListView());
   m_vgmfile_dock->setContentsMargins(0, 0, 0, 0);
-  m_vgmfile_dock->setTitleBarWidget(new TitleBar("Detected Music Files"));
+  installTitleBar(m_vgmfile_dock, "Detected Music Files",
+                  TitleBar::HideButton | TitleBar::CollapseButton);
 
   m_coll_listview = new VGMCollListView();
   m_coll_view = new VGMCollView();
@@ -162,13 +219,15 @@ void MainWindow::createElements() {
   m_coll_dock->setAllowedAreas(Qt::BottomDockWidgetArea);
   m_coll_dock->setWidget(m_coll_listview);
   m_coll_dock->setContentsMargins(0, 0, 0, 0);
-  m_coll_dock->setTitleBarWidget(new TitleBar("Collections"));
+  installTitleBar(m_coll_dock, "Collections",
+                  TitleBar::HideButton | TitleBar::AddButton | TitleBar::CollapseButton);
 
   m_coll_view_dock = new QDockWidget("Collection contents");
   m_coll_view_dock->setAllowedAreas(Qt::LeftDockWidgetArea);
   m_coll_view_dock->setWidget(m_coll_view);
   m_coll_view_dock->setContentsMargins(0, 0, 0, 0);
-  m_coll_view_dock->setTitleBarWidget(new TitleBar("Collection Contents"));
+  installTitleBar(m_coll_view_dock, "Collection Contents",
+                  TitleBar::HideButton | TitleBar::CollapseButton);
 
   addDockWidget(Qt::LeftDockWidgetArea, m_rawfile_dock);
   splitDockWidget(m_rawfile_dock, m_vgmfile_dock, Qt::Orientation::Vertical);

@@ -13,13 +13,34 @@ class TitleBar : public QWidget {
   Q_OBJECT
 
 public:
-  explicit TitleBar(const QString& title, QWidget *parent = nullptr);
+  enum Button {
+    NoButtons = 0x0,
+    HideButton = 0x1,
+    AddButton = 0x2,
+    CollapseButton = 0x4,
+  };
+  Q_DECLARE_FLAGS(Buttons, Button)
+
+  explicit TitleBar(const QString& title, Buttons buttons = NoButtons, QWidget *parent = nullptr);
   ~TitleBar() override = default;
 
   QSize sizeHint() const override {
     return QSize(200, Size::VTab);
   }
   QSize minimumSizeHint() const override {
-    return QSize(200, Size::VTab);
+    return QSize(0, Size::VTab);
   }
+
+signals:
+  void hideRequested();
+  void addRequested();
+  void collapseToggled(bool collapsed);
+
+private:
+  void updateCollapseButton();
+
+  class QToolButton *m_collapseButton{};
+  bool m_collapsed{};
 };
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(TitleBar::Buttons)
