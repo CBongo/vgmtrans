@@ -34,17 +34,30 @@ WindowBar::WindowBar(QWidget *parent) : QWidget(parent) {
   setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
   m_layout = new QHBoxLayout(this);
-  m_layout->setContentsMargins(Margin::HCommon, 0, Margin::HCommon, 0);
-  m_layout->setSpacing(8);
+  m_layout->setContentsMargins(
+#if defined(Q_OS_MACOS) || defined(Q_OS_MAC)
+      Margin::HCommon, 0, Margin::HCommon, 0
+#else
+      0, 0, 0, 0
+#endif
+  );
+  m_layout->setSpacing(
+#if defined(Q_OS_MACOS) || defined(Q_OS_MAC)
+      8
+#else
+      6
+#endif
+  );
+
+  m_menuBarPlaceholder = new QWidget(this);
+  m_menuBarPlaceholder->setFixedSize(0, 0);
+  m_menuBarPlaceholder->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+  m_menuBarWidget = m_menuBarPlaceholder;
 
   m_centerPlaceholder = new QWidget(this);
   m_centerPlaceholder->setFixedSize(0, 0);
   m_centerPlaceholder->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
   m_centerWidget = m_centerPlaceholder;
-
-  m_leftBalanceSpacer = new QWidget(this);
-  m_leftBalanceSpacer->setFixedWidth(0);
-  m_leftBalanceSpacer->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 
   m_leadingControls = new QWidget(this);
   auto *leadingLayout = new QHBoxLayout(m_leadingControls);
@@ -52,13 +65,17 @@ WindowBar::WindowBar(QWidget *parent) : QWidget(parent) {
   leadingLayout->setSpacing(4);
   m_leadingControls->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 
+#if defined(Q_OS_MACOS) || defined(Q_OS_MAC)
+  m_leftBalanceSpacer = new QWidget(this);
+  m_leftBalanceSpacer->setFixedWidth(0);
+  m_leftBalanceSpacer->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
+
   m_rightBalanceSpacer = new QWidget(this);
   m_rightBalanceSpacer->setFixedWidth(0);
   m_rightBalanceSpacer->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 
   m_layout->addWidget(m_leftBalanceSpacer);
 
-#if defined(Q_OS_MACOS) || defined(Q_OS_MAC)
   m_systemButtonArea = new QWidget(this);
   m_systemButtonArea->setFixedWidth(kMacSystemButtonAreaWidth);
   m_systemButtonArea->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
@@ -69,9 +86,10 @@ WindowBar::WindowBar(QWidget *parent) : QWidget(parent) {
   m_layout->addWidget(m_centerWidget);
   m_layout->addStretch(1);
 #else
+  m_layout->addWidget(m_menuBarWidget, 0, Qt::AlignVCenter);
   m_layout->addWidget(m_leadingControls);
   m_layout->addStretch(1);
-  m_layout->addWidget(m_centerWidget);
+  m_layout->addWidget(m_centerWidget, 0, Qt::AlignVCenter);
   m_layout->addStretch(1);
 
   m_rightControls = new QWidget(this);
@@ -104,10 +122,8 @@ WindowBar::WindowBar(QWidget *parent) : QWidget(parent) {
   buttonLayout->addWidget(m_maximizeButton);
   buttonLayout->addWidget(m_closeButton);
 
-  m_layout->addWidget(m_rightControls);
+  m_layout->addWidget(m_rightControls, 0, Qt::AlignRight | Qt::AlignVCenter);
 #endif
-
-  m_layout->addWidget(m_rightBalanceSpacer);
 
   updateBalanceSpacers();
   syncWindowButtons();
@@ -133,6 +149,36 @@ void WindowBar::setCenterWidget(QWidget *widget) {
     widget->setParent(this);
     widget->show();
   }
+}
+
+QWidget *WindowBar::menuBarWidget() const {
+  return m_menuBarWidget == m_menuBarPlaceholder ? nullptr : m_menuBarWidget;
+}
+
+void WindowBar::setMenuBarWidget(QWidget *widget) {
+#if defined(Q_OS_MACOS) || defined(Q_OS_MAC)
+  Q_UNUSED(widget);
+  return;
+#else
+  QWidget *replacement = widget ? widget : m_menuBarPlaceholder;
+  if (replacement == m_menuBarWidget) {
+    return;
+  }
+
+  m_layout->replaceWidget(m_menuBarWidget, replacement);
+  if (m_menuBarWidget != m_menuBarPlaceholder) {
+    m_menuBarWidget->setParent(nullptr);
+  }
+
+  m_menuBarWidget = replacement;
+  if (widget) {
+    widget->setParent(this);
+    widget->setContentsMargins(0, 0, 0, 0);
+    widget->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
+    widget->setStyleSheet(QStringLiteral("QMenuBar { background: transparent; border: none; }"));
+    widget->show();
+  }
+#endif
 }
 
 void WindowBar::setLeadingToggleButtons(const QList<ToggleButtonSpec> &buttons) {
@@ -306,6 +352,9 @@ void WindowBar::refreshLeadingToggleButtonIcons() {
 }
 
 void WindowBar::updateBalanceSpacers() {
+#if !defined(Q_OS_MACOS) && !defined(Q_OS_MAC)
+  return;
+#else
   if (!m_leftBalanceSpacer || !m_rightBalanceSpacer) {
     return;
   }
@@ -335,6 +384,7 @@ void WindowBar::updateBalanceSpacers() {
     m_leftBalanceSpacer->setFixedWidth(rightWidth - leftWidth);
     m_rightBalanceSpacer->setFixedWidth(0);
   }
+#endif
 }
 
 void WindowBar::syncWindowButtons() {

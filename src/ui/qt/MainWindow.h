@@ -72,7 +72,6 @@ private:
   VGMCollView *m_coll_view{};
   ToastHost *m_toastHost{};
   WindowBar *m_windowBar{};
-  QWidget *m_topChrome{};
   QWidget *m_dragOverlay{};
   QWK::WidgetWindowAgent *m_windowAgent{};
 };

@@ -28,6 +28,8 @@ public:
 
   QWidget *centerWidget() const;
   void setCenterWidget(QWidget *widget);
+  QWidget *menuBarWidget() const;
+  void setMenuBarWidget(QWidget *widget);
   void setLeadingToggleButtons(const QList<ToggleButtonSpec> &buttons);
   QWidget *leadingControls() const;
   QWidget *systemButtonArea() const;
@@ -55,6 +57,8 @@ private:
   };
 
   class QHBoxLayout *m_layout{};
+  QWidget *m_menuBarPlaceholder{};
+  QWidget *m_menuBarWidget{};
   QWidget *m_centerPlaceholder{};
   QWidget *m_centerWidget{};
   QWidget *m_leftBalanceSpacer{};

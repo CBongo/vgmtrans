@@ -292,22 +292,15 @@ void MainWindow::createElements() {
 
   QList<QDockWidget *> docks = findChildren<QDockWidget *>(QString(), Qt::FindDirectChildrenOnly);
 
-#if defined(Q_OS_MACOS) || defined(Q_OS_MAC)
   m_windowBar = new WindowBar(this);
+
+#if defined(Q_OS_MACOS) || defined(Q_OS_MAC)
   m_menu_bar = new MenuBar(nullptr, docks);
   m_menu_bar->setNativeMenuBar(true);
 #else
-  m_topChrome = new QWidget(this);
-  auto *topChromeLayout = new QVBoxLayout(m_topChrome);
-  topChromeLayout->setContentsMargins(0, 0, 0, 0);
-  topChromeLayout->setSpacing(0);
-
-  m_windowBar = new WindowBar(m_topChrome);
-  topChromeLayout->addWidget(m_windowBar);
-
-  m_menu_bar = new MenuBar(m_topChrome, docks);
+  m_menu_bar = new MenuBar(nullptr, docks);
   m_menu_bar->setNativeMenuBar(false);
-  topChromeLayout->addWidget(m_menu_bar);
+  m_windowBar->setMenuBarWidget(m_menu_bar);
 #endif
   m_menu_bar->setShortcutHost(this);
   m_windowBar->setCenterWidget(m_icon_bar);
@@ -330,6 +323,9 @@ void MainWindow::configureWindowAgent() {
   m_windowAgent->setTitleBar(m_windowBar);
   if (QWidget *leadingControls = m_windowBar->leadingControls()) {
     m_windowAgent->setHitTestVisible(leadingControls, true);
+  }
+  if (QWidget *menuBarWidget = m_windowBar->menuBarWidget()) {
+    m_windowAgent->setHitTestVisible(menuBarWidget, true);
   }
   if (QWidget *centerWidget = m_windowBar->centerWidget()) {
     m_windowAgent->setHitTestVisible(centerWidget, true);
@@ -354,7 +350,7 @@ void MainWindow::configureWindowAgent() {
     QAbstractButton *closeButton = m_windowBar->closeButton();
     m_windowAgent->setSystemButton(QWK::WindowAgentBase::Close, closeButton);
   }
-  setMenuWidget(m_topChrome);
+  setMenuWidget(m_windowBar);
 #endif
 }
 
