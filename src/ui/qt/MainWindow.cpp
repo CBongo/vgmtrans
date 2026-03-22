@@ -244,11 +244,11 @@ void MainWindow::createElements() {
   installTitleBar(m_rawfile_dock, "Scanned Files",
                   TitleBar::HideButton | TitleBar::CollapseButton);
 
-  m_vgmfile_dock = new QDockWidget("Detected Music Files");
+  m_vgmfile_dock = new QDockWidget("Detected Files");
   m_vgmfile_dock->setAllowedAreas(Qt::LeftDockWidgetArea);
   m_vgmfile_dock->setWidget(new VGMFileListView());
   m_vgmfile_dock->setContentsMargins(0, 0, 0, 0);
-  installTitleBar(m_vgmfile_dock, "Detected Music Files",
+  installTitleBar(m_vgmfile_dock, "Detected Files",
                   TitleBar::HideButton | TitleBar::CollapseButton);
 
   m_coll_listview = new VGMCollListView();
@@ -260,7 +260,6 @@ void MainWindow::createElements() {
   central_layout->setContentsMargins(0, 0, 0, 0);
   central_layout->setSpacing(0);
   central_layout->addWidget(MdiArea::the(), 1);
-  central_layout->addWidget(m_icon_bar);
   central_wrapper->setLayout(central_layout);
   setCentralWidget(central_wrapper);
 
@@ -310,6 +309,8 @@ void MainWindow::createElements() {
   m_menu_bar->setNativeMenuBar(false);
   topChromeLayout->addWidget(m_menu_bar);
 #endif
+  m_menu_bar->setShortcutHost(this);
+  m_windowBar->setCenterWidget(m_icon_bar);
   createStatusBar();
   m_toastHost = new ToastHost(this);
 }
@@ -320,8 +321,8 @@ void MainWindow::configureWindowAgent() {
   }
 
   m_windowAgent->setTitleBar(m_windowBar);
-  if (QWidget *dummyButton = m_windowBar->dummyButton()) {
-    m_windowAgent->setHitTestVisible(dummyButton, true);
+  if (QWidget *centerWidget = m_windowBar->centerWidget()) {
+    m_windowAgent->setHitTestVisible(centerWidget, true);
   }
 
 #if defined(Q_OS_MACOS) || defined(Q_OS_MAC)
