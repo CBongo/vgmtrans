@@ -134,22 +134,58 @@ void MainWindow::createElements() {
   setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
   setCorner(Qt::BottomRightCorner, Qt::BottomDockWidgetArea);
 
-  const auto installTitleBar = [this](QDockWidget *dock, const QString& title, TitleBar::Buttons buttons) {
+  const auto dockResizeGroup = [this](QDockWidget *dock) {
+    if (dock == m_rawfile_dock || dock == m_vgmfile_dock || dock == m_coll_view_dock) {
+      return QList<QDockWidget *>{m_rawfile_dock, m_vgmfile_dock, m_coll_view_dock};
+    }
+    if (dock == m_logger || dock == m_coll_dock) {
+      return QList<QDockWidget *>{m_logger, m_coll_dock};
+    }
+    return QList<QDockWidget *>{dock};
+  };
+
+  const auto resizeBuddyDock = [dockResizeGroup](QDockWidget *dock) -> QDockWidget * {
+    const QList<QDockWidget *> group = dockResizeGroup(dock);
+    const int dockIndex = group.indexOf(dock);
+    if (dockIndex < 0) {
+      return nullptr;
+    }
+
+    const auto canResize = [](QDockWidget *candidate) {
+      return candidate && candidate->isVisible() && !candidate->property("dockCollapsed").toBool();
+    };
+
+    for (int index = dockIndex - 1; index >= 0; --index) {
+      if (canResize(group[index])) {
+        return group[index];
+      }
+    }
+    for (int index = dockIndex + 1; index < group.size(); ++index) {
+      if (canResize(group[index])) {
+        return group[index];
+      }
+    }
+    return nullptr;
+  };
+
+  const auto installTitleBar = [this, resizeBuddyDock](QDockWidget *dock, const QString& title,
+                                                       TitleBar::Buttons buttons) {
     auto *titleBar = new TitleBar(title, buttons, dock);
     connect(titleBar, &TitleBar::hideRequested, dock, &QDockWidget::hide);
     connect(titleBar, &TitleBar::addRequested, this, [this]() {
       ManualCollectionDialog dialog(this);
       dialog.exec();
     });
-    connect(titleBar, &TitleBar::collapseToggled, this, [this, dock, titleBar](bool collapsed) {
+    connect(titleBar, &TitleBar::collapseToggled, this,
+            [this, dock, titleBar, resizeBuddyDock](bool collapsed) {
       QWidget *dockContents = dock->widget();
       if (!dockContents) {
         return;
       }
 
       const int titleBarHeight = titleBar->height() > 0 ? titleBar->height() : titleBar->sizeHint().height();
+      const int currentHeight = dock->height() > 0 ? dock->height() : dock->sizeHint().height();
       if (collapsed) {
-        const int currentHeight = dock->height();
         dock->setProperty("expandedHeight", currentHeight > titleBarHeight ? currentHeight
                                                                            : dock->sizeHint().height());
         dockContents->setProperty("minimumHeightBeforeCollapse", dockContents->minimumHeight());
@@ -172,15 +208,22 @@ void MainWindow::createElements() {
         const int maximumHeight = dockContents->property("maximumHeightBeforeCollapse").toInt();
         dockContents->setMaximumHeight(maximumHeight > 0 ? maximumHeight : QWIDGETSIZE_MAX);
       }
+      dock->setProperty("dockCollapsed", collapsed);
       dockContents->updateGeometry();
       dock->updateGeometry();
 
+      const int savedExpandedHeight = dock->property("expandedHeight").toInt();
+      const int minimumExpandedHeight = titleBarHeight + dockContents->minimumHeight();
       const int targetHeight = collapsed
                                    ? titleBarHeight
-                                   : std::max(dock->property("expandedHeight").toInt(),
-                                              dockContents->sizeHint().height() + titleBarHeight);
+                                   : (savedExpandedHeight > 0 ? savedExpandedHeight
+                                                              : minimumExpandedHeight);
       if (dock->isFloating()) {
         dock->resize(dock->width(), targetHeight);
+      } else if (QDockWidget *buddy = resizeBuddyDock(dock)) {
+        const int heightDelta = targetHeight - currentHeight;
+        const int buddyTargetHeight = std::max(0, buddy->height() - heightDelta);
+        resizeDocks({buddy, dock}, {buddyTargetHeight, targetHeight}, Qt::Vertical);
       } else {
         resizeDocks({dock}, {targetHeight}, Qt::Vertical);
       }
