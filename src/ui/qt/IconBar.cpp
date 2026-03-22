@@ -6,14 +6,11 @@
 
 #include "IconBar.h"
 
-#include <QLabel>
 #include <QLayout>
 #include <QWhatsThis>
 #include <QPushButton>
 
 #include "SequencePlayer.h"
-#include "Helpers.h"
-#include "MarqueeLabel.h"
 #include "SeekBar.h"
 
 IconBar::IconBar(QWidget *parent) : QWidget(parent) {
@@ -25,16 +22,6 @@ IconBar::IconBar(QWidget *parent) : QWidget(parent) {
 void IconBar::setupControls() {
   s_playicon = QIcon(":/icons/player_play.svg");
   s_pauseicon = QIcon(":/icons/player_pause.svg");
-
-  m_create = new QPushButton("Create collection manually");
-  m_create->setAutoDefault(false);
-  connect(m_create, &QPushButton::pressed, this, &IconBar::createPressed);
-  layout()->addWidget(m_create);
-
-  QFrame* line = new QFrame(this);
-  line->setFrameShape(QFrame::VLine);
-  line->setFrameShadow(QFrame::Sunken);
-  layout()->addWidget(line);
 
   m_play = new QPushButton();
   m_play->setIcon(s_playicon);
@@ -66,10 +53,6 @@ void IconBar::setupControls() {
     seekingTo(m_slider->value(), PositionChangeOrigin::SeekBar);
   });
   layout()->addWidget(m_slider);
-
-  m_title = new MarqueeLabel();
-  m_title->setText("Playback interrupted");
-  layout()->addWidget(m_title);
 
   connect(&SequencePlayer::the(), &SequencePlayer::statusChange, this, &IconBar::playerStatusChanged);
   connect(&SequencePlayer::the(), &SequencePlayer::playbackPositionChanged, this, &IconBar::playbackRangeUpdate);
@@ -112,16 +95,10 @@ void IconBar::playerStatusChanged(bool playing) {
     m_slider->setEnabled(true);
     m_play->setIcon(s_pauseicon);
     m_stop->setEnabled(true);
-    m_title->setText("Playing: " + SequencePlayer::the().songTitle());
   } else {
     m_play->setIcon(s_playicon);
     const bool hasActive = SequencePlayer::the().activeCollection() != nullptr;
     m_stop->setEnabled(hasActive);
     m_slider->setEnabled(hasActive);
-    if (hasActive) {
-      m_title->setText("Paused: " + SequencePlayer::the().songTitle());
-    } else {
-      m_title->setText("Playback interrupted");
-    }
   }
 }

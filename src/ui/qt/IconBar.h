@@ -6,11 +6,9 @@
 
 #pragma once
 
-#include <QToolBar>
+#include <QWidget>
 
 class QPushButton;
-class QLabel;
-class MarqueeLabel;
 class SeekBar;
 enum class PositionChangeOrigin;
 
@@ -25,7 +23,6 @@ signals:
   void playToggle();
   void stopPressed();
   void seekingTo(int position, PositionChangeOrigin origin);
-  void createPressed();
 
 private slots:
   void playerStatusChanged(bool playing);
@@ -34,11 +31,9 @@ private slots:
 private:
   void setupControls();
 
-  QPushButton *m_create{};
   QPushButton *m_play{};
   QPushButton *m_stop{};
   SeekBar *m_slider{};
-  MarqueeLabel *m_title;
   bool m_skipNextPlaybackSliderUpdate = false;
   inline static QIcon s_playicon;
   inline static QIcon s_pauseicon;

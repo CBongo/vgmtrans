@@ -7,19 +7,18 @@
 #pragma once
 
 #include <QAbstractListModel>
-#include <QGroupBox>
 #include <QItemSelectionModel>
+#include <QWidget>
 #include "VGMColl.h"
 
 class VGMFile;
 class QLabel;
 class QListView;
-class QLineEdit;
 
 class VGMCollViewModel : public QAbstractListModel {
   Q_OBJECT
 public:
-  VGMCollViewModel(const QItemSelectionModel *collListSelModel, QObject *parent = nullptr);
+  explicit VGMCollViewModel(QObject *parent = nullptr);
 
   int rowCount(const QModelIndex &parent = QModelIndex()) const override;
   QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
@@ -29,17 +28,17 @@ public:
   bool containsVGMFile(const VGMFile* file) const;
 
 public slots:
-  void handleNewCollSelected(const QModelIndex& modelIndex);
+  void handleSelectedCollChanged(VGMColl* coll, QWidget* caller);
   void removeVGMColl(const VGMColl* coll);
 
 public:
   VGMColl *m_coll;
 };
 
-class VGMCollView : public QGroupBox {
+class VGMCollView : public QWidget {
   Q_OBJECT
 public:
-  VGMCollView(QItemSelectionModel *collListSelModel, QWidget *parent = nullptr);
+  explicit VGMCollView(QWidget *parent = nullptr);
 
 private:
   void keyPressEvent(QKeyEvent *e) override;
@@ -55,7 +54,5 @@ private slots:
 
 private:
   VGMCollViewModel *vgmCollViewModel;
-  QLineEdit *m_collection_title;
   QListView *m_listview;
-  QLabel *m_title;
 };

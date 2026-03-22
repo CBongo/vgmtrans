@@ -12,8 +12,7 @@
 #include <QFileInfo>
 #include <QFileDialog>
 #include <QStandardPaths>
-#include <QGridLayout>
-#include <QPushButton>
+#include <QVBoxLayout>
 #if defined(Q_OS_LINUX)
 #include <QDBusConnection>
 #include <QDBusMessage>
@@ -28,7 +27,6 @@
 #include <QKeyEvent>
 #include <filesystem>
 #include <version.h>
-#include "ManualCollectionDialog.h"
 #include "MainWindow.h"
 #include "QtVGMRoot.h"
 #include "MenuBar.h"
@@ -132,53 +130,58 @@ MainWindow::MainWindow() : QMainWindow(nullptr) {
 void MainWindow::createElements() {
   setDocumentMode(true);
   setTabPosition(Qt::BottomDockWidgetArea, QTabWidget::North);
+  setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
+  setCorner(Qt::BottomRightCorner, Qt::BottomDockWidgetArea);
 
   m_rawfile_dock = new QDockWidget("Raw files");
+  m_rawfile_dock->setAllowedAreas(Qt::LeftDockWidgetArea);
   m_rawfile_dock->setWidget(new RawFileListView());
   m_rawfile_dock->setContentsMargins(0, 0, 0, 0);
   m_rawfile_dock->setTitleBarWidget(new TitleBar("Scanned Files"));
 
   m_vgmfile_dock = new QDockWidget("Detected Music Files");
+  m_vgmfile_dock->setAllowedAreas(Qt::LeftDockWidgetArea);
   m_vgmfile_dock->setWidget(new VGMFileListView());
   m_vgmfile_dock->setContentsMargins(0, 0, 0, 0);
   m_vgmfile_dock->setTitleBarWidget(new TitleBar("Detected Music Files"));
 
+  m_coll_listview = new VGMCollListView();
+  m_coll_view = new VGMCollView();
+  m_icon_bar = new IconBar();
+
+  auto *central_wrapper = new QWidget(this);
+  auto *central_layout = new QVBoxLayout();
+  central_layout->setContentsMargins(0, 0, 0, 0);
+  central_layout->setSpacing(0);
+  central_layout->addWidget(MdiArea::the(), 1);
+  central_layout->addWidget(m_icon_bar);
+  central_wrapper->setLayout(central_layout);
+  setCentralWidget(central_wrapper);
+
+  m_coll_dock = new QDockWidget("Collections");
+  m_coll_dock->setAllowedAreas(Qt::BottomDockWidgetArea);
+  m_coll_dock->setWidget(m_coll_listview);
+  m_coll_dock->setContentsMargins(0, 0, 0, 0);
+  m_coll_dock->setTitleBarWidget(new TitleBar("Collections"));
+
+  m_coll_view_dock = new QDockWidget("Collection contents");
+  m_coll_view_dock->setAllowedAreas(Qt::LeftDockWidgetArea);
+  m_coll_view_dock->setWidget(m_coll_view);
+  m_coll_view_dock->setContentsMargins(0, 0, 0, 0);
+  m_coll_view_dock->setTitleBarWidget(new TitleBar("Collection Contents"));
 
   addDockWidget(Qt::LeftDockWidgetArea, m_rawfile_dock);
   splitDockWidget(m_rawfile_dock, m_vgmfile_dock, Qt::Orientation::Vertical);
+  splitDockWidget(m_vgmfile_dock, m_coll_view_dock, Qt::Orientation::Vertical);
   m_vgmfile_dock->setFocus();
 
-  setCentralWidget(MdiArea::the());
-
-  m_coll_listview = new VGMCollListView();
-  m_coll_view = new VGMCollView(m_coll_listview->selectionModel());
-  m_icon_bar = new IconBar();
-
-  auto coll_list_area = new QWidget();
-  auto coll_list_area_layout = new QVBoxLayout();
-  coll_list_area_layout->setContentsMargins(0, 0, 0, 0);
-  coll_list_area_layout->addWidget(m_coll_listview);
-  coll_list_area_layout->addWidget(m_icon_bar);
-  coll_list_area->setLayout(coll_list_area_layout);
-
-  auto coll_wrapper = new QWidget();
-  auto coll_layout = new QGridLayout();
-  coll_layout->addWidget(m_coll_view, 0, 0, 1, 1, Qt::AlignLeft);
-  coll_layout->addWidget(coll_list_area, 0, 1, -1, -1);
-  coll_wrapper->setLayout(coll_layout);
-
-  m_coll_dock = new QDockWidget("Collections");
-  m_coll_dock->setWidget(coll_wrapper);
-  m_coll_dock->setContentsMargins(0, 0, 0, 0);
-  addDockWidget(Qt::BottomDockWidgetArea, m_coll_dock);
-  m_coll_dock->setTitleBarWidget(new QWidget());
-
   m_logger = new Logger();
+  m_logger->setAllowedAreas(Qt::BottomDockWidgetArea);
   addDockWidget(Qt::BottomDockWidgetArea, m_logger);
-  m_logger->setTitleBarWidget(new QWidget());
-
-  tabifyDockWidget(m_logger, m_coll_dock);
-  m_coll_dock->setFocus();
+  addDockWidget(Qt::BottomDockWidgetArea, m_coll_dock);
+  m_logger->hide();
+  m_rawfile_dock->hide();
+  m_coll_dock->hide();
 
   QList<QDockWidget *> docks = findChildren<QDockWidget *>(QString(), Qt::FindDirectChildrenOnly);
   m_menu_bar = new MenuBar(this, docks);
@@ -196,15 +199,10 @@ void MainWindow::createStatusBar() {
 void MainWindow::showEvent(QShowEvent* event) {
   QMainWindow::showEvent(event);
 
-  // Set the initial heights of the docks in relation to the main window height
-  QList<int> sizes;
-  int totalHeight = this->height();
-  // Calculate the desired heights for the dock widgets
-  sizes << totalHeight * 3 / 10;   // Raw Files
-  sizes << totalHeight * 7 / 10;   // VGM Files
-  sizes << totalHeight / 4;        // Collections
-
-  resizeDocks({m_rawfile_dock, m_vgmfile_dock, m_coll_dock}, sizes, Qt::Vertical);
+  const int totalHeight = height();
+  resizeDocks({m_vgmfile_dock, m_coll_view_dock},
+              {totalHeight * 3 / 5, totalHeight * 2 / 5},
+              Qt::Vertical);
 
   updateDragOverlayGeometry();
 }
@@ -223,10 +221,6 @@ void MainWindow::routeSignals() {
   connect(m_coll_listview, &VGMCollListView::nothingToPlay, m_icon_bar, &IconBar::showPlayInfo);
   connect(m_icon_bar, &IconBar::stopPressed, m_coll_listview, &VGMCollListView::handleStopRequest);
   connect(m_icon_bar, &IconBar::seekingTo, &SequencePlayer::the(), &SequencePlayer::seek);
-  connect(m_icon_bar, &IconBar::createPressed, [this]() {
-    ManualCollectionDialog wiz(this);
-    wiz.exec();
-  });
   connect(&qtVGMRoot, &QtVGMRoot::UI_toastRequested, this, &MainWindow::showToast);
 
   auto *playShortcut = new QShortcut(QKeySequence(Qt::Key_Space), this);

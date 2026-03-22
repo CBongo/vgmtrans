@@ -8,8 +8,6 @@
 
 #include <QVBoxLayout>
 #include <QListView>
-#include <QLineEdit>
-#include <QPushButton>
 #include <QKeyEvent>
 
 #include <VGMFile.h>
@@ -24,10 +22,10 @@
 #include "services/NotificationCenter.h"
 #include "services/MenuManager.h"
 
-VGMCollViewModel::VGMCollViewModel(const QItemSelectionModel *collListSelModel, QObject *parent)
+VGMCollViewModel::VGMCollViewModel(QObject *parent)
     : QAbstractListModel(parent), m_coll(nullptr) {
-  QObject::connect(collListSelModel, &QItemSelectionModel::currentChanged, this,
-                   &VGMCollViewModel::handleNewCollSelected);
+  connect(NotificationCenter::the(), &NotificationCenter::vgmCollSelected,
+          this, &VGMCollViewModel::handleSelectedCollChanged);
 }
 
 int VGMCollViewModel::rowCount(const QModelIndex &parent) const {
@@ -54,15 +52,11 @@ QVariant VGMCollViewModel::data(const QModelIndex &index, int role) const {
   return QVariant();
 }
 
-void VGMCollViewModel::handleNewCollSelected(const QModelIndex& modelIndex) {
-  if (!modelIndex.isValid() || qtVGMRoot.vgmColls().empty() ||
-      static_cast<size_t>(modelIndex.row()) >= qtVGMRoot.vgmColls().size()) {
-    m_coll = nullptr;
-  } else {
-    m_coll = qtVGMRoot.vgmColls()[modelIndex.row()];
-  }
-
-  dataChanged(index(0, 0), modelIndex);
+void VGMCollViewModel::handleSelectedCollChanged(VGMColl* coll, QWidget* caller) {
+  Q_UNUSED(caller);
+  beginResetModel();
+  m_coll = coll;
+  endResetModel();
 }
 
 VGMFile *VGMCollViewModel::fileFromIndex(const QModelIndex& index) const {
@@ -92,6 +86,10 @@ VGMFile *VGMCollViewModel::fileFromIndex(const QModelIndex& index) const {
 }
 
 QModelIndex VGMCollViewModel::indexFromFile(const VGMFile* file) const {
+  if (!m_coll) {
+    return QModelIndex();
+  }
+
   int row = 0;
 
   // Check in miscfiles
@@ -134,77 +132,33 @@ void VGMCollViewModel::removeVGMColl(const VGMColl* coll) {
   if (m_coll != coll)
     return;
 
-  // Select an invalid index to clear the view
-  handleNewCollSelected(QModelIndex());
+  handleSelectedCollChanged(nullptr, nullptr);
 }
 
 
-VGMCollView::VGMCollView(QItemSelectionModel *collListSelModel, QWidget *parent)
-    : QGroupBox("Selected collection", parent) {
-  auto layout = new QVBoxLayout();
-
-  auto rename_layout = new QHBoxLayout();
-  m_collection_title = new QLineEdit("No collection selected");
-  m_collection_title->setReadOnly(true);
-  rename_layout->addWidget(m_collection_title);
-
-  auto commit_rename = new QPushButton("Rename");
-  commit_rename->setEnabled(false);
-  commit_rename->setAutoDefault(true);
-  commit_rename->setIcon(QIcon(":/icons/collection.svg"));
-  rename_layout->addWidget(commit_rename);
-  layout->addLayout(rename_layout);
+VGMCollView::VGMCollView(QWidget *parent) : QWidget(parent) {
+  auto *layout = new QVBoxLayout();
+  layout->setContentsMargins(0, 0, 0, 0);
+  layout->setSpacing(6);
 
   m_listview = new QListView(this);
   m_listview->setAttribute(Qt::WA_MacShowFocusRect, false);
   m_listview->setIconSize(QSize(16, 16));
+  m_listview->setContextMenuPolicy(Qt::CustomContextMenu);
   layout->addWidget(m_listview);
 
-  vgmCollViewModel = new VGMCollViewModel(collListSelModel, this);
+  vgmCollViewModel = new VGMCollViewModel(this);
   m_listview->setModel(vgmCollViewModel);
   m_listview->setSelectionMode(QAbstractItemView::ExtendedSelection);
   m_listview->setSelectionRectVisible(true);
   m_listview->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
-  setContextMenuPolicy(Qt::CustomContextMenu);
-
   connect(&qtVGMRoot, &QtVGMRoot::UI_removeVGMColl, this, &VGMCollView::removeVGMColl);
-  connect(this, &QAbstractItemView::customContextMenuRequested, this, &VGMCollView::itemMenu);
+  connect(m_listview, &QWidget::customContextMenuRequested, this, &VGMCollView::itemMenu);
   connect(m_listview, &QListView::doubleClicked, this, &VGMCollView::doubleClickedSlot);
   connect(m_listview->selectionModel(), &QItemSelectionModel::currentChanged, this, &VGMCollView::handleCurrentChanged);
   connect(m_listview->selectionModel(), &QItemSelectionModel::selectionChanged, this, &VGMCollView::onSelectionChanged);
   connect(NotificationCenter::the(), &NotificationCenter::vgmFileSelected, this, &VGMCollView::onVGMFileSelected);
-
-  QObject::connect(collListSelModel, &QItemSelectionModel::currentChanged,
-    [this, commit_rename](const QModelIndex& index) {
-    if (!index.isValid() || qtVGMRoot.vgmColls().empty() ||
-        static_cast<size_t>(index.row()) >= qtVGMRoot.vgmColls().size()) {
-      commit_rename->setEnabled(false);
-      m_collection_title->setReadOnly(true);
-      m_collection_title->setText("No collection selected");
-    } else {
-      m_collection_title->setText(
-          QString::fromStdString(qtVGMRoot.vgmColls()[index.row()]->name()));
-      m_collection_title->setReadOnly(false);
-      commit_rename->setEnabled(true);
-    }
-  });
-
-  QObject::connect(commit_rename, &QPushButton::pressed, [this, collListSelModel]() {
-    auto model_index = collListSelModel->currentIndex();
-    if (!model_index.isValid() || qtVGMRoot.vgmColls().empty() ||
-        model_index.row() >= qtVGMRoot.vgmColls().size()) {
-      return;
-    }
-
-    auto title = m_collection_title->text().toStdString();
-    /* This makes a copy, no worries */
-    qtVGMRoot.vgmColls()[model_index.row()]->setName(title);
-
-    auto coll_list_model = collListSelModel->model();
-    coll_list_model->dataChanged(coll_list_model->index(0, 0),
-                                 coll_list_model->index(model_index.row(), 0));
-  });
 
   setLayout(layout);
 }
@@ -225,7 +179,7 @@ void VGMCollView::itemMenu(const QPoint &pos) {
     }
   }
   auto menu = MenuManager::the()->createMenuForItems<VGMItem>(selectedFiles);
-  menu->exec(mapToGlobal(pos));
+  menu->exec(m_listview->viewport()->mapToGlobal(pos));
   menu->deleteLater();
 }
 
@@ -241,7 +195,7 @@ void VGMCollView::keyPressEvent(QKeyEvent *e) {
       break;
     }
     default:
-      QGroupBox::keyPressEvent(e);
+      QWidget::keyPressEvent(e);
   }
 }
 
@@ -272,7 +226,6 @@ void VGMCollView::removeVGMColl(const VGMColl *coll) const {
   if (vgmCollViewModel->m_coll != coll)
     return;
 
-  m_collection_title->setText("No collection selected");
   vgmCollViewModel->removeVGMColl(coll);
 }
 

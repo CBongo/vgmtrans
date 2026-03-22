@@ -54,5 +54,6 @@ private:
   void keyPressEvent(QKeyEvent *e) override;
   void onSelectionChanged(const QItemSelection &selected, const QItemSelection &deselected);
   void onVGMFileSelected(VGMFile* file, const QWidget* caller);
+  void updateSelectedCollection() const;
   void updateContextualMenus() const;
 };
