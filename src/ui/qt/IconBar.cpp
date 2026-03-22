@@ -16,7 +16,7 @@
 
 IconBar::IconBar(QWidget *parent) : QWidget(parent) {
   setLayout(new QHBoxLayout());
-  layout()->setContentsMargins(15, 0, 15, 0);
+  layout()->setContentsMargins(0, 8, 0, 0);
   setupControls();
 }
 

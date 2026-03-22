@@ -19,9 +19,9 @@
 #include "UIHelpers.h"
 
 namespace {
-constexpr int kTitleBarHeight = 38;
+constexpr int kTitleBarHeight = 40;
 constexpr int kMacSystemButtonAreaWidth = 58;
-constexpr int kMacWindowBarLeftMargin = 4;
+constexpr int kMacWindowBarLeftMargin = 14;
 constexpr int kMacWindowBarRightMargin = 10;
 constexpr int kTitleBarToggleButtonWidth = 30;
 constexpr int kTitleBarToggleButtonHeight = 25;
@@ -85,16 +85,14 @@ WindowBar::WindowBar(QWidget *parent) : QWidget(parent) {
 
   m_leadingControls = new QWidget(this);
   auto *leadingLayout = new QHBoxLayout(m_leadingControls);
-  leadingLayout->setContentsMargins(0, 7, 0, 6);
+  leadingLayout->setContentsMargins(0, 8, 0, 7);
   leadingLayout->setSpacing(4);
   m_leadingControls->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 
 #if defined(Q_OS_MACOS) || defined(Q_OS_MAC)
   m_systemButtonArea = new QWidget(this);
-  m_systemButtonArea->setFixedWidth(kMacSystemButtonAreaWidth);
-  m_systemButtonArea->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
-
-  m_layout->addWidget(m_systemButtonArea);
+  m_systemButtonArea->setFixedSize(kMacSystemButtonAreaWidth, kTitleBarHeight - 4);
+  m_layout->addWidget(m_systemButtonArea, 0, Qt::AlignBottom);
   m_layout->addStretch(1);
   m_layout->addWidget(m_centerWidget);
   m_layout->addStretch(1);
