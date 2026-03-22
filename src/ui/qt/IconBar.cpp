@@ -12,10 +12,11 @@
 
 #include "SequencePlayer.h"
 #include "SeekBar.h"
+#include "Metrics.h"
 
 IconBar::IconBar(QWidget *parent) : QWidget(parent) {
   setLayout(new QHBoxLayout());
-  layout()->setContentsMargins(0, 0, 0, 0);
+  layout()->setContentsMargins(15, 0, 15, 0);
   setupControls();
 }
 
