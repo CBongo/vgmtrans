@@ -311,6 +311,15 @@ void MainWindow::createElements() {
 #endif
   m_menu_bar->setShortcutHost(this);
   m_windowBar->setCenterWidget(m_icon_bar);
+#if defined(Q_OS_MACOS) || defined(Q_OS_MAC)
+  m_windowBar->setLeadingToggleButtons({
+      {m_rawfile_dock->toggleViewAction(), QStringLiteral(":/icons/file.svg")},
+      {m_vgmfile_dock->toggleViewAction(), QStringLiteral(":/icons/sequence.svg")},
+      {m_coll_view_dock->toggleViewAction(), QStringLiteral(":/icons/binary.svg")},
+      {m_coll_dock->toggleViewAction(), QStringLiteral(":/icons/collection.svg")},
+      {m_logger->toggleViewAction(), QStringLiteral(":/icons/tray-arrow-down.svg")},
+  });
+#endif
   createStatusBar();
   m_toastHost = new ToastHost(this);
 }
@@ -321,6 +330,9 @@ void MainWindow::configureWindowAgent() {
   }
 
   m_windowAgent->setTitleBar(m_windowBar);
+  if (QWidget *leadingControls = m_windowBar->leadingControls()) {
+    m_windowAgent->setHitTestVisible(leadingControls, true);
+  }
   if (QWidget *centerWidget = m_windowBar->centerWidget()) {
     m_windowAgent->setHitTestVisible(centerWidget, true);
   }
