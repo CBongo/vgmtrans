@@ -45,7 +45,7 @@ private:
   void attachToTopLevelWindow();
   QToolButton *createWindowButton(const QString& toolTip);
   void refreshLeadingToggleButtonIcons();
-  void updateMacTrailingSpacerWidth();
+  void updateBalanceSpacers();
   void syncWindowButtons();
 
   struct LeadingToggleButton {
@@ -57,8 +57,10 @@ private:
   class QHBoxLayout *m_layout{};
   QWidget *m_centerPlaceholder{};
   QWidget *m_centerWidget{};
+  QWidget *m_leftBalanceSpacer{};
   QWidget *m_leadingControls{};
-  QWidget *m_macTrailingSpacer{};
+  QWidget *m_rightControls{};
+  QWidget *m_rightBalanceSpacer{};
   QWidget *m_systemButtonArea{};
   QToolButton *m_minimizeButton{};
   QToolButton *m_maximizeButton{};

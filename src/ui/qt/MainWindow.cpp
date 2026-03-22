@@ -311,7 +311,6 @@ void MainWindow::createElements() {
 #endif
   m_menu_bar->setShortcutHost(this);
   m_windowBar->setCenterWidget(m_icon_bar);
-#if defined(Q_OS_MACOS) || defined(Q_OS_MAC)
   m_windowBar->setLeadingToggleButtons({
       {m_rawfile_dock->toggleViewAction(), QStringLiteral(":/icons/file.svg")},
       {m_vgmfile_dock->toggleViewAction(), QStringLiteral(":/icons/sequence.svg")},
@@ -319,7 +318,6 @@ void MainWindow::createElements() {
       {m_coll_dock->toggleViewAction(), QStringLiteral(":/icons/collection.svg")},
       {m_logger->toggleViewAction(), QStringLiteral(":/icons/tray-arrow-down.svg")},
   });
-#endif
   createStatusBar();
   m_toastHost = new ToastHost(this);
 }

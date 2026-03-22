@@ -14,20 +14,14 @@
 #include <QToolButton>
 #include "Metrics.h"
 #include "TintableSvgIconEngine.h"
+#include "UIHelpers.h"
 
 namespace {
-constexpr int kWindowBarHeight = 42;
+constexpr int kTitleBarHeight = 40;
 constexpr int kMacSystemButtonAreaWidth = 72;
-constexpr int kMacLeadingButtonSize = 24;
-constexpr int kMacLeadingIconSize = 17;
-
-QString cssColor(const QColor &color) {
-  return QStringLiteral("rgba(%1, %2, %3, %4)")
-      .arg(color.red())
-      .arg(color.green())
-      .arg(color.blue())
-      .arg(color.alpha());
-}
+constexpr int kTitleBarToggleButtonWidth = 36;
+constexpr int kTitleBarToggleButtonHeight = 31;
+constexpr int kTitleBarToggleIconSize = 23;
 
 QIcon stencilIcon(const QString &iconPath, const QColor &color) {
   return QIcon(new TintableSvgIconEngine(iconPath, color));
@@ -35,7 +29,7 @@ QIcon stencilIcon(const QString &iconPath, const QColor &color) {
 }
 
 WindowBar::WindowBar(QWidget *parent) : QWidget(parent) {
-  setFixedHeight(kWindowBarHeight);
+  setFixedHeight(kTitleBarHeight);
   setAutoFillBackground(true);
   setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
@@ -48,31 +42,43 @@ WindowBar::WindowBar(QWidget *parent) : QWidget(parent) {
   m_centerPlaceholder->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
   m_centerWidget = m_centerPlaceholder;
 
+  m_leftBalanceSpacer = new QWidget(this);
+  m_leftBalanceSpacer->setFixedWidth(0);
+  m_leftBalanceSpacer->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
+
+  m_leadingControls = new QWidget(this);
+  auto *leadingLayout = new QHBoxLayout(m_leadingControls);
+  leadingLayout->setContentsMargins(0, 5, 0, 4);
+  leadingLayout->setSpacing(4);
+  m_leadingControls->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
+
+  m_rightBalanceSpacer = new QWidget(this);
+  m_rightBalanceSpacer->setFixedWidth(0);
+  m_rightBalanceSpacer->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
+
+  m_layout->addWidget(m_leftBalanceSpacer);
+
 #if defined(Q_OS_MACOS) || defined(Q_OS_MAC)
   m_systemButtonArea = new QWidget(this);
   m_systemButtonArea->setFixedWidth(kMacSystemButtonAreaWidth);
   m_systemButtonArea->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
-
-  m_leadingControls = new QWidget(this);
-  auto *leadingLayout = new QHBoxLayout(m_leadingControls);
-  leadingLayout->setContentsMargins(0, 0, 0, 0);
-  leadingLayout->setSpacing(4);
-  m_leadingControls->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
-
-  m_macTrailingSpacer = new QWidget(this);
-  m_macTrailingSpacer->setFixedWidth(kMacSystemButtonAreaWidth);
-  m_macTrailingSpacer->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 
   m_layout->addWidget(m_systemButtonArea);
   m_layout->addWidget(m_leadingControls);
   m_layout->addStretch(1);
   m_layout->addWidget(m_centerWidget);
   m_layout->addStretch(1);
-  m_layout->addWidget(m_macTrailingSpacer);
 #else
-  auto *buttonLayout = new QHBoxLayout();
+  m_layout->addWidget(m_leadingControls);
+  m_layout->addStretch(1);
+  m_layout->addWidget(m_centerWidget);
+  m_layout->addStretch(1);
+
+  m_rightControls = new QWidget(this);
+  auto *buttonLayout = new QHBoxLayout(m_rightControls);
   buttonLayout->setContentsMargins(0, 0, 0, 0);
   buttonLayout->setSpacing(4);
+  m_rightControls->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 
   m_minimizeButton = createWindowButton("Minimize window");
   m_maximizeButton = createWindowButton("Maximize window");
@@ -98,12 +104,12 @@ WindowBar::WindowBar(QWidget *parent) : QWidget(parent) {
   buttonLayout->addWidget(m_maximizeButton);
   buttonLayout->addWidget(m_closeButton);
 
-  m_layout->addStretch(1);
-  m_layout->addWidget(m_centerWidget);
-  m_layout->addStretch(1);
-  m_layout->addLayout(buttonLayout);
+  m_layout->addWidget(m_rightControls);
 #endif
 
+  m_layout->addWidget(m_rightBalanceSpacer);
+
+  updateBalanceSpacers();
   syncWindowButtons();
 }
 
@@ -130,7 +136,6 @@ void WindowBar::setCenterWidget(QWidget *widget) {
 }
 
 void WindowBar::setLeadingToggleButtons(const QList<ToggleButtonSpec> &buttons) {
-#if defined(Q_OS_MACOS) || defined(Q_OS_MAC)
   if (!m_leadingControls) {
     return;
   }
@@ -160,8 +165,8 @@ void WindowBar::setLeadingToggleButtons(const QList<ToggleButtonSpec> &buttons) 
     button->setFocusPolicy(Qt::NoFocus);
     button->setCursor(Qt::ArrowCursor);
     button->setToolButtonStyle(Qt::ToolButtonIconOnly);
-    button->setFixedSize(kMacLeadingButtonSize, kMacLeadingButtonSize);
-    button->setIconSize(QSize(kMacLeadingIconSize, kMacLeadingIconSize));
+    button->setFixedSize(kTitleBarToggleButtonWidth, kTitleBarToggleButtonHeight);
+    button->setIconSize(QSize(kTitleBarToggleIconSize, kTitleBarToggleIconSize));
     applyLeadingButtonStyle(button);
     leadingLayout->addWidget(button);
     connect(spec.action, &QAction::changed, this, [this]() { refreshLeadingToggleButtonIcons(); });
@@ -170,10 +175,7 @@ void WindowBar::setLeadingToggleButtons(const QList<ToggleButtonSpec> &buttons) 
   }
 
   refreshLeadingToggleButtonIcons();
-  updateMacTrailingSpacerWidth();
-#else
-  Q_UNUSED(buttons);
-#endif
+  updateBalanceSpacers();
 }
 
 QWidget *WindowBar::leadingControls() const {
@@ -244,12 +246,13 @@ void WindowBar::applyLeadingButtonStyle(QToolButton *button) const {
     return;
   }
 
+  const bool darkPalette = isDarkPalette(palette());
   QColor hoverFill = palette().color(QPalette::Text);
-  hoverFill.setAlpha(24);
+  hoverFill.setAlpha(darkPalette ? 18 : 12);
   QColor pressedFill = palette().color(QPalette::Text);
-  pressedFill.setAlpha(40);
+  pressedFill.setAlpha(darkPalette ? 28 : 20);
   QColor checkedFill = palette().color(QPalette::Text);
-  checkedFill.setAlpha(32);
+  checkedFill.setAlpha(darkPalette ? 24 : 16);
 
   button->setStyleSheet(QStringLiteral(
       "QToolButton {"
@@ -287,9 +290,12 @@ QToolButton *WindowBar::createWindowButton(const QString& toolTip) {
 }
 
 void WindowBar::refreshLeadingToggleButtonIcons() {
-#if defined(Q_OS_MACOS) || defined(Q_OS_MAC)
-  const QColor enabledColor = palette().color(QPalette::Text);
-  const QColor disabledColor = palette().color(QPalette::Disabled, QPalette::Text);
+  const QColor windowColor = palette().color(QPalette::Window);
+  const bool darkPalette = isDarkPalette(palette());
+  const QColor enabledColor =
+      blendColors(palette().color(QPalette::Text), windowColor, darkPalette ? 0.72 : 0.56);
+  const QColor disabledColor =
+      blendColors(palette().color(QPalette::Disabled, QPalette::Text), windowColor, darkPalette ? 0.6 : 0.46);
 
   for (const auto &entry : m_leadingToggleButtons) {
     if (!entry.button) {
@@ -297,21 +303,38 @@ void WindowBar::refreshLeadingToggleButtonIcons() {
     }
     entry.button->setIcon(stencilIcon(entry.iconPath, entry.button->isEnabled() ? enabledColor : disabledColor));
   }
-#endif
 }
 
-void WindowBar::updateMacTrailingSpacerWidth() {
-#if defined(Q_OS_MACOS) || defined(Q_OS_MAC)
-  if (!m_macTrailingSpacer) {
+void WindowBar::updateBalanceSpacers() {
+  if (!m_leftBalanceSpacer || !m_rightBalanceSpacer) {
     return;
   }
 
-  int width = kMacSystemButtonAreaWidth;
+  int leftWidth = 0;
   if (m_leadingControls) {
-    width += m_leadingControls->sizeHint().width();
+    leftWidth += m_leadingControls->sizeHint().width();
   }
-  m_macTrailingSpacer->setFixedWidth(width);
+
+#if defined(Q_OS_MACOS) || defined(Q_OS_MAC)
+  if (m_systemButtonArea) {
+    leftWidth += m_systemButtonArea->sizeHint().width();
+  }
 #endif
+
+  int rightWidth = 0;
+#if !defined(Q_OS_MACOS) && !defined(Q_OS_MAC)
+  if (m_rightControls) {
+    rightWidth += m_rightControls->sizeHint().width();
+  }
+#endif
+
+  if (leftWidth > rightWidth) {
+    m_leftBalanceSpacer->setFixedWidth(0);
+    m_rightBalanceSpacer->setFixedWidth(leftWidth - rightWidth);
+  } else {
+    m_leftBalanceSpacer->setFixedWidth(rightWidth - leftWidth);
+    m_rightBalanceSpacer->setFixedWidth(0);
+  }
 }
 
 void WindowBar::syncWindowButtons() {

@@ -41,6 +41,26 @@ void applyEffectToPixmap(QPixmap &src, QPixmap &tgt, QGraphicsEffect *effect, in
   scene.render(&ptr, QRectF(), QRectF(-extent, -extent, src.width() + extent*2, src.height() + extent*2));
 }
 
+QString cssColor(const QColor &color) {
+  return QStringLiteral("rgba(%1, %2, %3, %4)")
+      .arg(color.red())
+      .arg(color.green())
+      .arg(color.blue())
+      .arg(color.alpha());
+}
+
+QColor blendColors(const QColor &foreground, const QColor &background, qreal foregroundWeight) {
+  const qreal backgroundWeight = 1.0 - foregroundWeight;
+  return QColor::fromRgbF(foreground.redF() * foregroundWeight + background.redF() * backgroundWeight,
+                          foreground.greenF() * foregroundWeight + background.greenF() * backgroundWeight,
+                          foreground.blueF() * foregroundWeight + background.blueF() * backgroundWeight,
+                          foreground.alphaF() * foregroundWeight + background.alphaF() * backgroundWeight);
+}
+
+bool isDarkPalette(const QPalette &palette) {
+  return palette.color(QPalette::Window).lightnessF() < 0.5;
+}
+
 std::filesystem::path openSaveDirDialog() {
   static QString selected_dir =QStandardPaths::writableLocation(QStandardPaths::MusicLocation);
 

@@ -8,6 +8,9 @@
 
 #include <filesystem>
 #include <string>
+#include <QColor>
+#include <QPalette>
+#include <QString>
 
 class QScrollArea;
 class QWidget;
@@ -17,6 +20,9 @@ class VGMItem;
 
 QScrollArea* getContainingScrollArea(const QWidget* widget);
 void applyEffectToPixmap(QPixmap& src, QPixmap& tgt, QGraphicsEffect* effect, int extent = 0);
+QString cssColor(const QColor &color);
+QColor blendColors(const QColor &foreground, const QColor &background, qreal foregroundWeight);
+bool isDarkPalette(const QPalette &palette);
 
 std::filesystem::path openSaveDirDialog();
 std::filesystem::path openSaveFileDialog(const std::filesystem::path& suggested_filename, const std::string& extension);
