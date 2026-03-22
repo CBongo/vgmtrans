@@ -200,8 +200,18 @@ void MainWindow::showEvent(QShowEvent* event) {
   QMainWindow::showEvent(event);
 
   const int totalHeight = height();
+  const int collectionDockHeight = totalHeight / 5;
   resizeDocks({m_vgmfile_dock, m_coll_view_dock},
-              {totalHeight * 3 / 5, totalHeight * 2 / 5},
+              {totalHeight - collectionDockHeight, collectionDockHeight},
+              Qt::Vertical);
+  if (QLayout *mainLayout = layout()) {
+    mainLayout->activate();
+  }
+  const int realizedCollectionDockHeight =
+      (m_coll_view_dock && m_coll_view_dock->height() > 0) ? m_coll_view_dock->height()
+                                                            : collectionDockHeight;
+  resizeDocks({m_coll_dock, m_logger},
+              {realizedCollectionDockHeight, realizedCollectionDockHeight},
               Qt::Vertical);
 
   updateDragOverlayGeometry();
