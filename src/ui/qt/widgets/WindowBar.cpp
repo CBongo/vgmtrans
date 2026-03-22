@@ -17,11 +17,11 @@
 #include "UIHelpers.h"
 
 namespace {
-constexpr int kTitleBarHeight = 40;
+constexpr int kTitleBarHeight = 38;
 constexpr int kMacSystemButtonAreaWidth = 72;
-constexpr int kTitleBarToggleButtonWidth = 36;
-constexpr int kTitleBarToggleButtonHeight = 31;
-constexpr int kTitleBarToggleIconSize = 23;
+constexpr int kTitleBarToggleButtonWidth = 30;
+constexpr int kTitleBarToggleButtonHeight = 25;
+constexpr int kTitleBarToggleIconSize = 19;
 constexpr int kWindowsWindowIconButtonWidth = 36;
 constexpr int kWindowsWindowButtonWidth = 46;
 constexpr int kWindowsWindowIconSize = 18;
@@ -81,7 +81,7 @@ WindowBar::WindowBar(QWidget *parent) : QWidget(parent) {
 
   m_leadingControls = new QWidget(this);
   auto *leadingLayout = new QHBoxLayout(m_leadingControls);
-  leadingLayout->setContentsMargins(0, 5, 0, 4);
+  leadingLayout->setContentsMargins(0, 7, 0, 6);
   leadingLayout->setSpacing(4);
   m_leadingControls->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 
@@ -101,9 +101,9 @@ WindowBar::WindowBar(QWidget *parent) : QWidget(parent) {
   m_systemButtonArea->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 
   m_layout->addWidget(m_systemButtonArea);
-  m_layout->addWidget(m_leadingControls);
   m_layout->addStretch(1);
   m_layout->addWidget(m_centerWidget);
+  m_layout->addWidget(m_leadingControls, 0, Qt::AlignVCenter);
   m_layout->addStretch(1);
 #else
 #if defined(Q_OS_WIN)
@@ -113,9 +113,9 @@ WindowBar::WindowBar(QWidget *parent) : QWidget(parent) {
   m_layout->addWidget(m_windowIconButton, 0, Qt::AlignVCenter);
 #endif
   m_layout->addWidget(m_menuBarWidget, 0, Qt::AlignVCenter);
-  m_layout->addWidget(m_leadingControls);
   m_layout->addStretch(1);
   m_layout->addWidget(m_centerWidget, 0, Qt::AlignVCenter);
+  m_layout->addWidget(m_leadingControls, 0, Qt::AlignVCenter);
   m_layout->addStretch(1);
 
   m_rightControls = new QWidget(this);
@@ -214,7 +214,13 @@ void WindowBar::setMenuBarWidget(QWidget *widget) {
     widget->setParent(this);
     widget->setContentsMargins(0, 0, 0, 0);
     widget->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
+#if defined(Q_OS_WIN)
+    widget->setStyleSheet(QStringLiteral(
+        "QMenuBar { background: transparent; border: none; }"
+        "QMenuBar::item { padding: 2px 6px; margin: 0px; background: transparent; }"));
+#else
     widget->setStyleSheet(QStringLiteral("QMenuBar { background: transparent; border: none; }"));
+#endif
     widget->show();
   }
 #endif
@@ -459,22 +465,14 @@ void WindowBar::updateBalanceSpacers() {
   }
 
   int leftWidth = 0;
-  if (m_leadingControls) {
-    leftWidth += m_leadingControls->sizeHint().width();
-  }
-
-#if defined(Q_OS_MACOS) || defined(Q_OS_MAC)
   if (m_systemButtonArea) {
     leftWidth += m_systemButtonArea->sizeHint().width();
   }
-#endif
 
   int rightWidth = 0;
-#if !defined(Q_OS_MACOS) && !defined(Q_OS_MAC)
-  if (m_rightControls) {
-    rightWidth += m_rightControls->sizeHint().width();
+  if (m_leadingControls) {
+    rightWidth += m_leadingControls->sizeHint().width();
   }
-#endif
 
   if (leftWidth > rightWidth) {
     m_leftBalanceSpacer->setFixedWidth(0);
