@@ -20,10 +20,12 @@ class VGMCollListView;
 class VGMCollView;
 class StatusBarContent;
 class ToastHost;
+class WindowBar;
 class QDragEnterEvent;
 class QDragMoveEvent;
 class QDragLeaveEvent;
 class QDropEvent;
+class QPaintEvent;
 class QResizeEvent;
 
 class MainWindow final : public QMainWindow {
@@ -41,10 +43,13 @@ protected:
   void dragMoveEvent(QDragMoveEvent *event) override;
   void dragLeaveEvent(QDragLeaveEvent *event) override;
   void dropEvent(QDropEvent *event) override;
+  void paintEvent(QPaintEvent *event) override;
   void resizeEvent(QResizeEvent *event) override;
   bool eventFilter(QObject* obj, QEvent* event) override;
 
 private:
+  Qt::Edges resizeEdgesForGlobalPos(const QPoint& globalPos) const;
+
   void createElements();
   void createStatusBar();
   void routeSignals();
@@ -66,5 +71,6 @@ private:
   VGMCollListView *m_coll_listview{};
   VGMCollView *m_coll_view{};
   ToastHost *m_toastHost{};
+  WindowBar *m_windowBar{};
   QWidget *m_dragOverlay{};
 };

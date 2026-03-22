@@ -47,6 +47,7 @@ target_sources(vgmtrans
     widgets/ToastHost.cpp
     widgets/TableView.cpp
     widgets/TitleBar.cpp
+    widgets/WindowBar.cpp
     workarea/hexview/HexView.cpp
     workarea/hexview/HexViewRhiHost.cpp
     workarea/hexview/HexViewRhiRenderer.cpp
@@ -99,6 +100,7 @@ target_sources(vgmtrans
       widgets/TitleBar.h
       widgets/Toast.h
       widgets/ToastHost.h
+      widgets/WindowBar.h
   PRIVATE
     FILE_SET headers_workarea TYPE HEADERS BASE_DIRS workarea
     FILES

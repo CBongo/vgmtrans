@@ -9,6 +9,7 @@
 #include <QUrl>
 #ifdef __APPLE__
 void qtOpenUrlNative(const QByteArray& encodedUrl);
+void qtUpdateFramelessWindowCornersNative(QWidget* window, double cornerRadius);
 #else
 #include <QDesktopServices>
 #endif
@@ -443,5 +444,14 @@ void qtOpenUrl(const QUrl& url) {
   qtOpenUrlNative(encoded);
 #else
   QDesktopServices::openUrl(QUrl::fromEncoded(encoded));
+#endif
+}
+
+void qtUpdateFramelessWindowCorners(QWidget* window, double cornerRadius) {
+#ifdef __APPLE__
+  qtUpdateFramelessWindowCornersNative(window, cornerRadius);
+#else
+  Q_UNUSED(window);
+  Q_UNUSED(cornerRadius);
 #endif
 }
