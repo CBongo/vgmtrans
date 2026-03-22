@@ -41,6 +41,10 @@
   <file>icons/toast_error.svg</file>
   <file>icons/toast_success.svg</file>
   <file>icons/toast_close.svg</file>
+  <file alias="window-bar/minimize.svg">../../../../lib/qwindowkit/examples/shared/resources/window-bar/minimize.svg</file>
+  <file alias="window-bar/maximize.svg">../../../../lib/qwindowkit/examples/shared/resources/window-bar/maximize.svg</file>
+  <file alias="window-bar/restore.svg">../../../../lib/qwindowkit/examples/shared/resources/window-bar/restore.svg</file>
+  <file alias="window-bar/close.svg">../../../../lib/qwindowkit/examples/shared/resources/window-bar/close.svg</file>
   <file alias="legal/VGMTrans">../../../../LICENSE</file>
   <file alias="legal/zlib">../../../../lib/zlib/LICENSE</file>
   <file alias="legal/unarr">../../../../lib/unarr/COPYING</file>

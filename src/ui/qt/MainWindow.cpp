@@ -23,6 +23,7 @@
 #include <QMessageBox>
 #include <QStatusBar>
 #include <QResizeEvent>
+#include <QAbstractButton>
 #include <QApplication>
 #include <QKeyEvent>
 #include <filesystem>
@@ -338,6 +339,10 @@ void MainWindow::configureWindowAgent() {
   }
   setMenuWidget(m_windowBar);
 #else
+  if (m_windowBar->windowIconButton()) {
+    QAbstractButton *windowIconButton = m_windowBar->windowIconButton();
+    m_windowAgent->setSystemButton(QWK::WindowAgentBase::WindowIcon, windowIconButton);
+  }
   if (m_windowBar->minimizeButton()) {
     QAbstractButton *minimizeButton = m_windowBar->minimizeButton();
     m_windowAgent->setSystemButton(QWK::WindowAgentBase::Minimize, minimizeButton);

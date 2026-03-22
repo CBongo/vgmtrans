@@ -22,9 +22,29 @@ constexpr int kMacSystemButtonAreaWidth = 72;
 constexpr int kTitleBarToggleButtonWidth = 36;
 constexpr int kTitleBarToggleButtonHeight = 31;
 constexpr int kTitleBarToggleIconSize = 23;
+constexpr int kWindowsWindowIconButtonWidth = 36;
+constexpr int kWindowsWindowButtonWidth = 46;
+constexpr int kWindowsWindowIconSize = 18;
+constexpr int kWindowsWindowGlyphSize = 12;
 
 QIcon stencilIcon(const QString &iconPath, const QColor &color) {
   return QIcon(new TintableSvgIconEngine(iconPath, color));
+}
+
+QIcon multiStateStencilIcon(const QString &iconPath, const QColor &normalColor,
+                            const QColor &activeColor, const QColor &disabledColor,
+                            const QSize &size) {
+  QIcon icon;
+
+  const auto addMode = [&](QIcon::Mode mode, const QColor &color) {
+    const QIcon tintedIcon(new TintableSvgIconEngine(iconPath, color));
+    icon.addPixmap(tintedIcon.pixmap(size), mode, QIcon::Off);
+  };
+
+  addMode(QIcon::Normal, normalColor);
+  addMode(QIcon::Active, activeColor);
+  addMode(QIcon::Disabled, disabledColor);
+  return icon;
 }
 }
 
@@ -86,6 +106,12 @@ WindowBar::WindowBar(QWidget *parent) : QWidget(parent) {
   m_layout->addWidget(m_centerWidget);
   m_layout->addStretch(1);
 #else
+#if defined(Q_OS_WIN)
+  m_windowIconButton = createWindowButton(QString());
+  m_windowIconButton->setObjectName(QStringLiteral("windowIconButton"));
+  applyWindowButtonStyle(m_windowIconButton, false, true);
+  m_layout->addWidget(m_windowIconButton, 0, Qt::AlignVCenter);
+#endif
   m_layout->addWidget(m_menuBarWidget, 0, Qt::AlignVCenter);
   m_layout->addWidget(m_leadingControls);
   m_layout->addStretch(1);
@@ -95,12 +121,25 @@ WindowBar::WindowBar(QWidget *parent) : QWidget(parent) {
   m_rightControls = new QWidget(this);
   auto *buttonLayout = new QHBoxLayout(m_rightControls);
   buttonLayout->setContentsMargins(0, 0, 0, 0);
+#if defined(Q_OS_WIN)
+  buttonLayout->setSpacing(0);
+#else
   buttonLayout->setSpacing(4);
+#endif
   m_rightControls->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 
   m_minimizeButton = createWindowButton("Minimize window");
   m_maximizeButton = createWindowButton("Maximize window");
   m_closeButton = createWindowButton("Close window");
+
+#if defined(Q_OS_WIN)
+  m_minimizeButton->setObjectName(QStringLiteral("minimizeButton"));
+  m_maximizeButton->setObjectName(QStringLiteral("maximizeButton"));
+  m_closeButton->setObjectName(QStringLiteral("closeButton"));
+  applyWindowButtonStyle(m_minimizeButton);
+  applyWindowButtonStyle(m_maximizeButton);
+  applyWindowButtonStyle(m_closeButton, true);
+#endif
 
   connect(m_minimizeButton, &QToolButton::clicked, this, [this]() {
     if (QWidget *topLevelWindow = window()) {
@@ -228,6 +267,10 @@ QWidget *WindowBar::leadingControls() const {
   return m_leadingControls;
 }
 
+QAbstractButton *WindowBar::windowIconButton() const {
+  return m_windowIconButton;
+}
+
 QWidget *WindowBar::systemButtonArea() const {
   return m_systemButtonArea;
 }
@@ -254,12 +297,18 @@ void WindowBar::changeEvent(QEvent *event) {
         applyLeadingButtonStyle(entry.button);
       }
     }
+    applyWindowButtonStyle(m_windowIconButton, false, true);
+    applyWindowButtonStyle(m_minimizeButton);
+    applyWindowButtonStyle(m_maximizeButton);
+    applyWindowButtonStyle(m_closeButton, true);
+    syncWindowButtons();
   }
 }
 
 bool WindowBar::eventFilter(QObject *watched, QEvent *event) {
   if (watched == m_trackedWindow &&
-      (event->type() == QEvent::WindowStateChange || event->type() == QEvent::Show)) {
+      (event->type() == QEvent::WindowStateChange || event->type() == QEvent::Show ||
+       event->type() == QEvent::WindowIconChange)) {
     syncWindowButtons();
   }
   return QWidget::eventFilter(watched, event);
@@ -316,6 +365,52 @@ void WindowBar::applyLeadingButtonStyle(QToolButton *button) const {
                             .arg(cssColor(checkedFill)));
 }
 
+void WindowBar::applyWindowButtonStyle(QToolButton *button, bool closeButton, bool iconButton) const {
+  if (!button) {
+    return;
+  }
+
+#if defined(Q_OS_WIN)
+  if (iconButton) {
+    button->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    button->setFixedSize(kWindowsWindowIconButtonWidth, kTitleBarHeight);
+    button->setIconSize(QSize(kWindowsWindowIconSize, kWindowsWindowIconSize));
+    button->setStyleSheet(QStringLiteral(
+        "QToolButton {"
+        " border: none;"
+        " background: transparent;"
+        " padding: 0px;"
+        " margin: 0px;"
+        "}"));
+    return;
+  }
+
+  const bool darkPalette = isDarkPalette(palette());
+  QColor hoverFill = darkPalette ? QColor(255, 255, 255, 38) : QColor(0, 0, 0, 24);
+  QColor pressedFill = darkPalette ? QColor(255, 255, 255, 52) : QColor(0, 0, 0, 34);
+  QColor closeHoverFill(QStringLiteral("#e81123"));
+  QColor closePressedFill(QStringLiteral("#c50f1f"));
+
+  button->setToolButtonStyle(Qt::ToolButtonIconOnly);
+  button->setFixedSize(kWindowsWindowButtonWidth, kTitleBarHeight);
+  button->setIconSize(QSize(kWindowsWindowGlyphSize, kWindowsWindowGlyphSize));
+  button->setStyleSheet(QStringLiteral(
+      "QToolButton {"
+      " border: none;"
+      " background: transparent;"
+      " padding: 0px;"
+      " margin: 0px;"
+      "}"
+      "QToolButton:hover { background: %1; }"
+      "QToolButton:pressed { background: %2; }")
+                            .arg(cssColor(closeButton ? closeHoverFill : hoverFill))
+                            .arg(cssColor(closeButton ? closePressedFill : pressedFill)));
+#else
+  Q_UNUSED(closeButton);
+  Q_UNUSED(iconButton);
+#endif
+}
+
 QToolButton *WindowBar::createWindowButton(const QString& toolTip) {
   auto *button = new QToolButton(this);
   button->setAutoRaise(true);
@@ -323,6 +418,9 @@ QToolButton *WindowBar::createWindowButton(const QString& toolTip) {
   button->setToolTip(toolTip);
   button->setCursor(Qt::ArrowCursor);
 
+#if defined(Q_OS_WIN)
+  button->setFixedHeight(kTitleBarHeight);
+#else
   const int buttonSize = style()->pixelMetric(QStyle::PM_TitleBarButtonSize, nullptr, this);
   const int iconSize = style()->pixelMetric(QStyle::PM_TitleBarButtonIconSize, nullptr, this);
   if (buttonSize > 0) {
@@ -331,6 +429,7 @@ QToolButton *WindowBar::createWindowButton(const QString& toolTip) {
   if (iconSize > 0) {
     button->setIconSize(QSize(iconSize, iconSize));
   }
+#endif
 
   return button;
 }
@@ -390,6 +489,35 @@ void WindowBar::updateBalanceSpacers() {
 void WindowBar::syncWindowButtons() {
 #if !defined(Q_OS_MACOS) && !defined(Q_OS_MAC)
   const bool maximized = window() && window()->isMaximized();
+
+#if defined(Q_OS_WIN)
+  const bool darkPalette = isDarkPalette(palette());
+  const QColor windowColor = palette().color(QPalette::Window);
+  const QColor buttonColor =
+      blendColors(palette().color(QPalette::Text), windowColor, darkPalette ? 0.88 : 0.72);
+  const QColor disabledColor =
+      blendColors(palette().color(QPalette::Disabled, QPalette::Text), windowColor, darkPalette ? 0.6 : 0.48);
+  if (m_windowIconButton) {
+    const QIcon windowIcon = window() ? window()->windowIcon() : QIcon(QStringLiteral(":/vgmtrans.png"));
+    m_windowIconButton->setIcon(windowIcon);
+  }
+  if (m_minimizeButton) {
+    m_minimizeButton->setIcon(multiStateStencilIcon(
+        QStringLiteral(":/window-bar/minimize.svg"), buttonColor, buttonColor, disabledColor,
+        QSize(kWindowsWindowGlyphSize, kWindowsWindowGlyphSize)));
+  }
+  if (m_maximizeButton) {
+    m_maximizeButton->setIcon(multiStateStencilIcon(
+        maximized ? QStringLiteral(":/window-bar/restore.svg") : QStringLiteral(":/window-bar/maximize.svg"),
+        buttonColor, buttonColor, disabledColor, QSize(kWindowsWindowGlyphSize, kWindowsWindowGlyphSize)));
+    m_maximizeButton->setToolTip(maximized ? "Restore window" : "Maximize window");
+  }
+  if (m_closeButton) {
+    m_closeButton->setIcon(multiStateStencilIcon(
+        QStringLiteral(":/window-bar/close.svg"), buttonColor, Qt::white, disabledColor,
+        QSize(kWindowsWindowGlyphSize, kWindowsWindowGlyphSize)));
+  }
+#else
   if (m_minimizeButton) {
     m_minimizeButton->setIcon(style()->standardIcon(QStyle::SP_TitleBarMinButton, nullptr, this));
   }
@@ -401,5 +529,6 @@ void WindowBar::syncWindowButtons() {
   if (m_closeButton) {
     m_closeButton->setIcon(style()->standardIcon(QStyle::SP_TitleBarCloseButton, nullptr, this));
   }
+#endif
 #endif
 }

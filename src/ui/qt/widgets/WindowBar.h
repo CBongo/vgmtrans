@@ -32,6 +32,7 @@ public:
   void setMenuBarWidget(QWidget *widget);
   void setLeadingToggleButtons(const QList<ToggleButtonSpec> &buttons);
   QWidget *leadingControls() const;
+  QAbstractButton *windowIconButton() const;
   QWidget *systemButtonArea() const;
   QAbstractButton *minimizeButton() const;
   QAbstractButton *maximizeButton() const;
@@ -44,6 +45,7 @@ protected:
 
 private:
   void applyLeadingButtonStyle(QToolButton *button) const;
+  void applyWindowButtonStyle(QToolButton *button, bool closeButton = false, bool iconButton = false) const;
   void attachToTopLevelWindow();
   QToolButton *createWindowButton(const QString& toolTip);
   void refreshLeadingToggleButtonIcons();
@@ -63,6 +65,7 @@ private:
   QWidget *m_centerWidget{};
   QWidget *m_leftBalanceSpacer{};
   QWidget *m_leadingControls{};
+  QToolButton *m_windowIconButton{};
   QWidget *m_rightControls{};
   QWidget *m_rightBalanceSpacer{};
   QWidget *m_systemButtonArea{};
