@@ -43,9 +43,6 @@ int main(int argc, char *argv[]) {
 
   VGMTransApplication app(argc, argv);
 
-#ifdef _WIN32
-  app.setStyle(QStyleFactory::create("fusion"));
-#endif
   qtVGMRoot.init();
 
   QFontDatabase::addApplicationFont(":/fonts/Roboto_Mono/RobotoMono-VariableFont_wght.ttf");
