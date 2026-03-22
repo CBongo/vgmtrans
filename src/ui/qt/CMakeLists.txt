@@ -5,6 +5,17 @@ find_package(Qt6 COMPONENTS GuiPrivate QUIET)
 message(STATUS "Using Qt: ${Qt6_VERSION}")
 message(STATUS "Has own QtGuiPrivate: ${Qt6GuiPrivate_FOUND}")
 
+if(NOT TARGET QWindowKit::Widgets)
+  set(QWINDOWKIT_BUILD_STATIC ON CACHE BOOL "" FORCE)
+  set(QWINDOWKIT_BUILD_WIDGETS ON CACHE BOOL "" FORCE)
+  set(QWINDOWKIT_BUILD_QUICK OFF CACHE BOOL "" FORCE)
+  set(QWINDOWKIT_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+  set(QWINDOWKIT_INSTALL OFF CACHE BOOL "" FORCE)
+  add_subdirectory(${PROJECT_SOURCE_DIR}/lib/qwindowkit
+                   ${CMAKE_CURRENT_BINARY_DIR}/lib/qwindowkit
+                   EXCLUDE_FROM_ALL)
+endif()
+
 # D-Bus is used on Linux for the XDG FileTransfer portal
 # and on macOS to workaround a macdeployqt bug
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin|FreeBSD|OpenBSD|Linux")
@@ -132,6 +143,7 @@ target_compile_features(vgmtrans PRIVATE cxx_std_20)
 target_link_libraries(
   vgmtrans
   PRIVATE vgmtranscore
+          QWindowKit::Widgets
           Qt6::Widgets
           Qt6::GuiPrivate
           Qt6::Svg

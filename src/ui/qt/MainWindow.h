@@ -25,8 +25,10 @@ class QDragEnterEvent;
 class QDragMoveEvent;
 class QDragLeaveEvent;
 class QDropEvent;
-class QPaintEvent;
 class QResizeEvent;
+namespace QWK {
+class WidgetWindowAgent;
+}
 
 class MainWindow final : public QMainWindow {
   Q_OBJECT
@@ -43,14 +45,12 @@ protected:
   void dragMoveEvent(QDragMoveEvent *event) override;
   void dragLeaveEvent(QDragLeaveEvent *event) override;
   void dropEvent(QDropEvent *event) override;
-  void paintEvent(QPaintEvent *event) override;
   void resizeEvent(QResizeEvent *event) override;
   bool eventFilter(QObject* obj, QEvent* event) override;
 
 private:
-  Qt::Edges resizeEdgesForGlobalPos(const QPoint& globalPos) const;
-
   void createElements();
+  void configureWindowAgent();
   void createStatusBar();
   void routeSignals();
   void updateDragOverlayAppearance();
@@ -72,5 +72,7 @@ private:
   VGMCollView *m_coll_view{};
   ToastHost *m_toastHost{};
   WindowBar *m_windowBar{};
+  QWidget *m_topChrome{};
   QWidget *m_dragOverlay{};
+  QWK::WidgetWindowAgent *m_windowAgent{};
 };

@@ -23,14 +23,11 @@
 #include <QMessageBox>
 #include <QStatusBar>
 #include <QResizeEvent>
-#include <QPaintEvent>
-#include <QPainter>
 #include <QApplication>
 #include <QKeyEvent>
-#include <QMouseEvent>
-#include <QWindow>
 #include <filesystem>
 #include <version.h>
+#include <QWKWidgets/widgetwindowagent.h>
 #include "MainWindow.h"
 #include "QtVGMRoot.h"
 #include "MenuBar.h"
@@ -41,7 +38,6 @@
 #include "SequencePlayer.h"
 #include "services/NotificationCenter.h"
 #include "services/Settings.h"
-#include "util/Helpers.h"
 #include "workarea/RawFileListView.h"
 #include "workarea/VGMFileListView.h"
 #include "workarea/VGMCollListView.h"
@@ -56,9 +52,6 @@
 
 namespace {
 constexpr auto MIME_PORTAL_FILETRANSFER = "application/vnd.portal.filetransfer";
-constexpr int kWindowBorderWidth = 1;
-constexpr qreal kWindowCornerRadius = 10.0;
-const QColor kWindowBorderColor(92, 92, 92, 135);
 
 QStringList retrievePortalDroppedFiles([[maybe_unused]] const QMimeData* mimeData) {
 #if defined(VGMTRANS_HAVE_DBUS) && defined(Q_OS_LINUX)
@@ -110,14 +103,16 @@ QStringList retrievePortalDroppedFiles([[maybe_unused]] const QMimeData* mimeDat
 MainWindow::MainWindow() : QMainWindow(nullptr) {
   setWindowTitle("VGMTrans");
   setWindowIcon(QIcon(":/vgmtrans.png"));
-  setWindowFlag(Qt::FramelessWindowHint, true);
-  setAttribute(Qt::WA_TranslucentBackground);
+  setAttribute(Qt::WA_DontCreateNativeAncestors);
+  setAttribute(Qt::WA_ContentsMarginsRespectsSafeArea, false);
   setAcceptDrops(true);
   setContextMenuPolicy(Qt::NoContextMenu);
-  setContentsMargins(kWindowBorderWidth, kWindowBorderWidth,
-                     kWindowBorderWidth, kWindowBorderWidth);
+
+  m_windowAgent = new QWK::WidgetWindowAgent(this);
+  m_windowAgent->setup(this);
 
   createElements();
+  configureWindowAgent();
   routeSignals();
   qApp->installEventFilter(this);
 
@@ -297,25 +292,59 @@ void MainWindow::createElements() {
   m_coll_dock->hide();
 
   QList<QDockWidget *> docks = findChildren<QDockWidget *>(QString(), Qt::FindDirectChildrenOnly);
-  auto *topChrome = new QWidget(this);
-  auto *topChromeLayout = new QVBoxLayout(topChrome);
+
+#if defined(Q_OS_MACOS) || defined(Q_OS_MAC)
+  m_windowBar = new WindowBar(this);
+  m_menu_bar = new MenuBar(nullptr, docks);
+  m_menu_bar->setNativeMenuBar(true);
+#else
+  m_topChrome = new QWidget(this);
+  auto *topChromeLayout = new QVBoxLayout(m_topChrome);
   topChromeLayout->setContentsMargins(0, 0, 0, 0);
   topChromeLayout->setSpacing(0);
 
-  m_windowBar = new WindowBar(topChrome);
+  m_windowBar = new WindowBar(m_topChrome);
   topChromeLayout->addWidget(m_windowBar);
 
-  #if defined(Q_OS_MACOS) || defined(Q_OS_MAC)
-  m_menu_bar = new MenuBar(nullptr, docks);
-  m_menu_bar->setNativeMenuBar(true);
-  #else
-  m_menu_bar = new MenuBar(topChrome, docks);
+  m_menu_bar = new MenuBar(m_topChrome, docks);
   m_menu_bar->setNativeMenuBar(false);
   topChromeLayout->addWidget(m_menu_bar);
-  #endif
-  setMenuWidget(topChrome);
+#endif
   createStatusBar();
   m_toastHost = new ToastHost(this);
+}
+
+void MainWindow::configureWindowAgent() {
+  if (!m_windowAgent || !m_windowBar) {
+    return;
+  }
+
+  m_windowAgent->setTitleBar(m_windowBar);
+  if (QWidget *dummyButton = m_windowBar->dummyButton()) {
+    m_windowAgent->setHitTestVisible(dummyButton, true);
+  }
+
+#if defined(Q_OS_MACOS) || defined(Q_OS_MAC)
+  m_windowAgent->setWindowAttribute(QStringLiteral("no-system-buttons"), false);
+  if (QWidget *systemButtonArea = m_windowBar->systemButtonArea()) {
+    m_windowAgent->setSystemButtonArea(systemButtonArea);
+  }
+  setMenuWidget(m_windowBar);
+#else
+  if (m_windowBar->minimizeButton()) {
+    QAbstractButton *minimizeButton = m_windowBar->minimizeButton();
+    m_windowAgent->setSystemButton(QWK::WindowAgentBase::Minimize, minimizeButton);
+  }
+  if (m_windowBar->maximizeButton()) {
+    QAbstractButton *maximizeButton = m_windowBar->maximizeButton();
+    m_windowAgent->setSystemButton(QWK::WindowAgentBase::Maximize, maximizeButton);
+  }
+  if (m_windowBar->closeButton()) {
+    QAbstractButton *closeButton = m_windowBar->closeButton();
+    m_windowAgent->setSystemButton(QWK::WindowAgentBase::Close, closeButton);
+  }
+  setMenuWidget(m_topChrome);
+#endif
 }
 
 void MainWindow::createStatusBar() {
@@ -342,7 +371,6 @@ void MainWindow::showEvent(QShowEvent* event) {
               {realizedCollectionDockHeight, realizedCollectionDockHeight},
               Qt::Vertical);
 
-  qtUpdateFramelessWindowCorners(this, (isMaximized() || isFullScreen()) ? 0.0 : kWindowCornerRadius);
   updateDragOverlayGeometry();
 }
 
@@ -368,21 +396,6 @@ void MainWindow::routeSignals() {
 }
 
 bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
-  if (auto *widget = qobject_cast<QWidget *>(obj)) {
-    if (widget->window() == this &&
-        event->type() == QEvent::MouseButtonPress &&
-        !isMaximized() && !isFullScreen()) {
-      auto *mouseEvent = static_cast<QMouseEvent *>(event);
-      if (mouseEvent->button() == Qt::LeftButton) {
-        const Qt::Edges edges = resizeEdgesForGlobalPos(mouseEvent->globalPosition().toPoint());
-        if (edges != Qt::Edges{} && windowHandle() && windowHandle()->startSystemResize(edges)) {
-          event->accept();
-          return true;
-        }
-      }
-    }
-  }
-
   if (event->type() == QEvent::KeyPress || event->type() == QEvent::KeyRelease) {
     auto* keyEvent = static_cast<QKeyEvent*>(event);
     if (!keyEvent->isAutoRepeat() && keyEvent->key() == HexViewInput::kModifierKey) {
@@ -393,26 +406,6 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
     NotificationCenter::the()->setSeekModifierActive(false);
   }
   return QMainWindow::eventFilter(obj, event);
-}
-
-Qt::Edges MainWindow::resizeEdgesForGlobalPos(const QPoint& globalPos) const {
-  constexpr int kResizeMargin = 6;
-
-  Qt::Edges edges;
-  const QRect bounds = frameGeometry();
-  if (globalPos.x() >= bounds.left() && globalPos.x() <= bounds.left() + kResizeMargin) {
-    edges |= Qt::LeftEdge;
-  } else if (globalPos.x() <= bounds.right() && globalPos.x() >= bounds.right() - kResizeMargin) {
-    edges |= Qt::RightEdge;
-  }
-
-  if (globalPos.y() >= bounds.top() && globalPos.y() <= bounds.top() + kResizeMargin) {
-    edges |= Qt::TopEdge;
-  } else if (globalPos.y() <= bounds.bottom() && globalPos.y() >= bounds.bottom() - kResizeMargin) {
-    edges |= Qt::BottomEdge;
-  }
-
-  return edges;
 }
 
 void MainWindow::dragEnterEvent(QDragEnterEvent *event) {
@@ -447,19 +440,6 @@ void MainWindow::dropEvent(QDropEvent *event) {
 
   handleDroppedUrls(mimeData->urls());
   event->acceptProposedAction();
-}
-
-void MainWindow::paintEvent(QPaintEvent *event) {
-  Q_UNUSED(event);
-
-  const qreal cornerRadius = (isMaximized() || isFullScreen()) ? 0.0 : kWindowCornerRadius;
-  const QRectF frameRect = QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5);
-
-  QPainter painter(this);
-  painter.setRenderHint(QPainter::Antialiasing, true);
-  painter.setPen(QPen(kWindowBorderColor, kWindowBorderWidth));
-  painter.setBrush(palette().color(QPalette::Window));
-  painter.drawRoundedRect(frameRect, cornerRadius, cornerRadius);
 }
 
 void MainWindow::showDragOverlay() {
@@ -548,7 +528,6 @@ void MainWindow::showToast(const QString& message, ToastType type, int duration_
 
 void MainWindow::resizeEvent(QResizeEvent *event) {
   QMainWindow::resizeEvent(event);
-  qtUpdateFramelessWindowCorners(this, (isMaximized() || isFullScreen()) ? 0.0 : kWindowCornerRadius);
   updateDragOverlayGeometry();
 }
 

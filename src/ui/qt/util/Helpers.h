@@ -11,7 +11,6 @@
 #include <VGMItem.h>
 
 class QUrl;
-class QWidget;
 
 const QIcon &iconForFile(VGMFileVariant file);
 const QIcon &iconForItemType(VGMItem::Type type);
@@ -22,7 +21,6 @@ QColor textColorForItemType(VGMItem::Type type);
 QString getFullDescriptionForTooltip(VGMItem* item);
 
 void qtOpenUrl(const QUrl& url);
-void qtUpdateFramelessWindowCorners(QWidget* window, double cornerRadius);
 
 template<typename ... Base>
 struct Visitor : Base ... {
