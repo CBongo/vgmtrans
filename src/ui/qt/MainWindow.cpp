@@ -263,7 +263,7 @@ void MainWindow::createElements() {
   m_coll_dock->setWidget(m_coll_listview);
   m_coll_dock->setContentsMargins(0, 0, 0, 0);
   installTitleBar(m_coll_dock, "Collections",
-                  TitleBar::HideButton | TitleBar::AddButton | TitleBar::CollapseButton);
+                  TitleBar::HideButton | TitleBar::NewButton | TitleBar::CollapseButton);
 
   m_coll_view_dock = new QDockWidget("Collection contents");
   m_coll_view_dock->setAllowedAreas(Qt::LeftDockWidgetArea);

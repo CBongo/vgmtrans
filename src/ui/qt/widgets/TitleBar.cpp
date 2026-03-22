@@ -19,6 +19,7 @@ TitleBar::TitleBar(const QString& title, Buttons buttons, QWidget *parent) : QWi
   titleLayout->setContentsMargins(Margin::HCommon, 5, Margin::HCommon, 5);
   titleLayout->setSpacing(4);
   QLabel *titleLabel = new QLabel(title);
+  titleLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
   titleLayout->addWidget(titleLabel);
   titleLayout->addStretch(1);
 
@@ -35,10 +36,10 @@ TitleBar::TitleBar(const QString& title, Buttons buttons, QWidget *parent) : QWi
     return button;
   };
 
-  if (buttons.testFlag(AddButton)) {
-    auto *addButton = makeButton("Add collection");
-    addButton->setText("Add");
-    connect(addButton, &QToolButton::clicked, this, &TitleBar::addRequested);
+  if (buttons.testFlag(NewButton)) {
+    auto *newButton = makeButton("New collection");
+    newButton->setText("New");
+    connect(newButton, &QToolButton::clicked, this, &TitleBar::addRequested);
   }
 
   if (buttons.testFlag(CollapseButton)) {
@@ -67,4 +68,14 @@ void TitleBar::updateCollapseButton() {
   m_collapseButton->setIcon(style()->standardIcon(
       m_collapsed ? QStyle::SP_TitleBarUnshadeButton : QStyle::SP_TitleBarShadeButton));
   m_collapseButton->setToolTip(m_collapsed ? "Expand dock" : "Collapse dock");
+}
+
+void TitleBar::mouseDoubleClickEvent(QMouseEvent *event) {
+  if (event->button() == Qt::LeftButton && m_collapseButton) {
+    m_collapseButton->toggle();
+    event->accept();
+    return;
+  }
+
+  QWidget::mouseDoubleClickEvent(event);
 }

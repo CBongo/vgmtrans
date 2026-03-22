@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <QMouseEvent>
 #include <QWidget>
 #include "Metrics.h"
 
@@ -16,7 +17,7 @@ public:
   enum Button {
     NoButtons = 0x0,
     HideButton = 0x1,
-    AddButton = 0x2,
+    NewButton = 0x2,
     CollapseButton = 0x4,
   };
   Q_DECLARE_FLAGS(Buttons, Button)
@@ -30,6 +31,9 @@ public:
   QSize minimumSizeHint() const override {
     return QSize(0, Size::VTab);
   }
+
+protected:
+  void mouseDoubleClickEvent(QMouseEvent *event) override;
 
 signals:
   void hideRequested();
