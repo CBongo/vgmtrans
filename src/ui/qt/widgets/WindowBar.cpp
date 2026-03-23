@@ -370,19 +370,21 @@ void WindowBar::updateResponsiveLayout() {
     return;
   }
 
-  const auto visibleWidth = [](QWidget *widget) {
-    return widget && !widget->isHidden() ? widget->sizeHint().width() : 0;
+  m_layout->activate();
+
+  const auto occupiedWidth = [](QWidget *widget) {
+    return widget && !widget->isHidden() ? (widget->width() > 0 ? widget->width() : widget->sizeHint().width()) : 0;
   };
 
   const QMargins margins = m_layout->contentsMargins();
   const int centerMinimumWidth = std::max(0, m_centerWidget->minimumSizeHint().width());
   const int leadingWidth = m_leadingToggleButtons.isEmpty() ? 0 : m_leadingControls->sizeHint().width();
 #if defined(Q_OS_MACOS) || defined(Q_OS_MAC)
-  const int fixedWidth = margins.left() + margins.right() + visibleWidth(m_systemButtonArea);
+  const int fixedWidth = margins.left() + margins.right() + occupiedWidth(m_systemButtonArea);
 #else
   const int fixedWidth =
-      margins.left() + margins.right() + visibleWidth(m_windowIconButton) + visibleWidth(m_menuBarWidget) +
-      visibleWidth(m_rightControls) + 8;
+      margins.left() + margins.right() + occupiedWidth(m_windowIconButton) + occupiedWidth(m_menuBarWidget) +
+      occupiedWidth(m_rightControls) + 8;
 #endif
   const qreal remainingFreeWidthFraction = 1.0 - kIconBarFreeWidthFraction;
   const qreal denominator = remainingFreeWidthFraction - kFreeWidthThreshold;
