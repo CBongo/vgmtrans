@@ -32,8 +32,8 @@ constexpr int kWindowsWindowIconButtonWidth = 36;
 constexpr int kWindowsWindowButtonWidth = 46;
 constexpr int kWindowsWindowIconSize = 18;
 constexpr int kWindowsWindowGlyphSize = 12;
-constexpr qreal kIconBarFreeWidthFraction = 0.6;
-constexpr qreal kFreeWidthThreshold = 0.25;
+constexpr qreal kIconBarFreeWidthFraction = 0.55;
+constexpr qreal kFreeWidthThreshold = 0.3;
 constexpr int kFreeWidthToggleMargin = 24;
 
 QIcon multiStateStencilIcon(const QString &iconPath, const QColor &normalColor,
@@ -401,7 +401,7 @@ void WindowBar::updateResponsiveLayout() {
   const int freeWidth = std::max(0, width() - fixedWidth - (showLeadingControls ? leadingWidth : 0));
   const int desiredCenterWidth = static_cast<int>(std::lround(freeWidth * kIconBarFreeWidthFraction));
   m_centerWidget->setFixedWidth(std::min(freeWidth, std::max(centerMinimumWidth, desiredCenterWidth)));
-  m_layout->invalidate();
+  m_layout->activate();
 }
 
 void WindowBar::applyLeadingButtonStyle(QToolButton *button) const {
