@@ -143,6 +143,7 @@ MainWindow::MainWindow() : QMainWindow(nullptr) {
 }
 
 void MainWindow::scheduleSaveDockState() {
+  // Defer until the current dock/layout change finishes so we capture the settled user layout.
   QTimer::singleShot(0, this, [this]() {
     // Preserve only user-driven layout changes; window-driven dock shrink should not become the new baseline.
     m_preferredDockState = saveState();
@@ -504,6 +505,7 @@ void MainWindow::resizeEvent(QResizeEvent *event) {
     return;
   }
 
+  // Defer until QMainWindow finishes its resize layout pass before restoring the preferred dock sizes.
   QTimer::singleShot(0, this, [this, syncGeneration]() {
     if (syncGeneration != m_dockResizeSyncGeneration) {
       return;
