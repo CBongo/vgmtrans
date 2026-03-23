@@ -32,6 +32,24 @@ TitleBar::TitleBar(const QString& title, Buttons buttons, QWidget *parent) : QWi
   QLabel *titleLabel = new QLabel(title);
   titleLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
   titleLayout->addWidget(titleLabel);
+  const auto makeButton = [this](const QString& toolTip) {
+    auto *button = new QToolButton(this);
+    button->setAutoRaise(true);
+    button->setFocusPolicy(Qt::NoFocus);
+    button->setToolTip(toolTip);
+    button->setCursor(Qt::ArrowCursor);
+    button->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    button->setFixedSize(kTitleBarButtonWidth, kTitleBarButtonHeight);
+    button->setIconSize(QSize(kTitleBarIconSize, kTitleBarIconSize));
+    return button;
+  };
+
+  if (buttons.testFlag(NewButton)) {
+    m_newButton = makeButton("New collection");
+    titleLayout->addSpacing(4);
+    titleLayout->addWidget(m_newButton);
+    connect(m_newButton, &QToolButton::clicked, this, &TitleBar::addRequested);
+  }
   titleLayout->addStretch(1);
 
   m_buttonContainer = new QWidget(this);
@@ -54,26 +72,9 @@ TitleBar::TitleBar(const QString& title, Buttons buttons, QWidget *parent) : QWi
   QFont labelFont("Arial", -1, QFont::Bold, true);
   titleLabel->setFont(labelFont);
 
-  const auto makeButton = [this, buttonLayout](const QString& toolTip) {
-    auto *button = new QToolButton(this);
-    button->setAutoRaise(true);
-    button->setFocusPolicy(Qt::NoFocus);
-    button->setToolTip(toolTip);
-    button->setCursor(Qt::ArrowCursor);
-    button->setToolButtonStyle(Qt::ToolButtonIconOnly);
-    button->setFixedSize(kTitleBarButtonWidth, kTitleBarButtonHeight);
-    button->setIconSize(QSize(kTitleBarIconSize, kTitleBarIconSize));
-    buttonLayout->addWidget(button);
-    return button;
-  };
-
-  if (buttons.testFlag(NewButton)) {
-    m_newButton = makeButton("New collection");
-    connect(m_newButton, &QToolButton::clicked, this, &TitleBar::addRequested);
-  }
-
   if (buttons.testFlag(HideButton)) {
     m_hideButton = makeButton("Hide");
+    buttonLayout->addWidget(m_hideButton);
     connect(m_hideButton, &QToolButton::clicked, this, &TitleBar::hideRequested);
   }
   updateButtonStyles();
