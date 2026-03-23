@@ -9,6 +9,7 @@
 #include <QWidget>
 
 class QToolButton;
+class QResizeEvent;
 class SeekBar;
 enum class PositionChangeOrigin;
 
@@ -24,12 +25,16 @@ signals:
   void stopPressed();
   void seekingTo(int position, PositionChangeOrigin origin);
 
+protected:
+  void resizeEvent(QResizeEvent *event) override;
+
 private slots:
   void playerStatusChanged(bool playing);
   void playbackRangeUpdate(int cur, int max, PositionChangeOrigin origin);
 
 private:
   void setupControls();
+  void updateSeekBarVisibility();
 
   QToolButton *m_play{};
   QToolButton *m_stop{};

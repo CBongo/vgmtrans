@@ -20,6 +20,7 @@ namespace {
 constexpr int kTransportControlHeight = 32;
 constexpr int kTransportButtonSize = 32;
 constexpr int kTransportIconSize = 28;
+constexpr int kSeekBarVisibleWidthThreshold = 100;
 constexpr int kInactiveTransportIconAlpha = 120;
 const QColor kDarkPlayColor(0x2f, 0xbf, 0x71);
 const QColor kLightPlayColor(0x24, 0x96, 0x59);
@@ -115,12 +116,18 @@ void IconBar::setupControls() {
           });
   connect(&SequencePlayer::the(), &SequencePlayer::statusChange, this, &IconBar::playerStatusChanged);
   connect(&SequencePlayer::the(), &SequencePlayer::playbackPositionChanged, this, &IconBar::playbackRangeUpdate);
+  updateSeekBarVisibility();
   playerStatusChanged(SequencePlayer::the().playing());
 }
 
 void IconBar::showPlayInfo() {
   QWhatsThis::showText(m_play->mapToGlobal(m_play->pos()), m_play->whatsThis(), this);
   m_play->clearFocus();
+}
+
+void IconBar::resizeEvent(QResizeEvent *event) {
+  QWidget::resizeEvent(event);
+  updateSeekBarVisibility();
 }
 
 void IconBar::playbackRangeUpdate(int cur, int max, PositionChangeOrigin origin) {
@@ -170,4 +177,10 @@ void IconBar::playerStatusChanged(bool playing) {
   }
   m_stop->setIcon(gradientTransportIcon(QStringLiteral(":/icons/stop.svg"), stopColor));
   m_slider->setEnabled(hasActive);
+}
+
+void IconBar::updateSeekBarVisibility() {
+  if (m_slider) {
+    m_slider->setVisible(contentsRect().width() >= kSeekBarVisibleWidthThreshold);
+  }
 }
