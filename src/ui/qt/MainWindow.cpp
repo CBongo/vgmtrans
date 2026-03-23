@@ -25,7 +25,11 @@
 #include <QResizeEvent>
 #include <QAbstractButton>
 #include <QApplication>
+#include <QDockWidget>
 #include <QKeyEvent>
+#include <QMouseEvent>
+#include <QTimer>
+#include <algorithm>
 #include <filesystem>
 #include <version.h>
 #include <QWKWidgets/widgetwindowagent.h>
@@ -53,6 +57,37 @@
 
 namespace {
 constexpr auto MIME_PORTAL_FILETRANSFER = "application/vnd.portal.filetransfer";
+constexpr Qt::DockWidgetArea kTrackedDockAreas[] = {
+    Qt::LeftDockWidgetArea,
+    Qt::RightDockWidgetArea,
+    Qt::TopDockWidgetArea,
+    Qt::BottomDockWidgetArea,
+};
+
+Qt::Orientation dockAreaPrimaryOrientation(Qt::DockWidgetArea area) {
+  switch (area) {
+    case Qt::LeftDockWidgetArea:
+    case Qt::RightDockWidgetArea:
+      return Qt::Horizontal;
+    case Qt::TopDockWidgetArea:
+    case Qt::BottomDockWidgetArea:
+      return Qt::Vertical;
+    default:
+      return Qt::Horizontal;
+  }
+}
+
+bool dockAreaCanGrow(Qt::DockWidgetArea area, bool widthExpanded, bool heightExpanded) {
+  return dockAreaPrimaryOrientation(area) == Qt::Horizontal ? widthExpanded : heightExpanded;
+}
+
+int primaryExtent(const QWidget *widget, Qt::DockWidgetArea area) {
+  return dockAreaPrimaryOrientation(area) == Qt::Horizontal ? widget->width() : widget->height();
+}
+
+bool isDockSeparatorCursor(Qt::CursorShape shape) {
+  return shape == Qt::SplitHCursor || shape == Qt::SplitVCursor;
+}
 
 QStringList retrievePortalDroppedFiles([[maybe_unused]] const QMimeData* mimeData) {
 #if defined(VGMTRANS_HAVE_DBUS) && defined(Q_OS_LINUX)
@@ -135,6 +170,82 @@ MainWindow::MainWindow() : QMainWindow(nullptr) {
   L_INFO(infostring);
 }
 
+QList<QDockWidget *> MainWindow::trackedDocks() const {
+  return {m_rawfile_dock, m_vgmfile_dock, m_coll_dock, m_coll_view_dock, m_logger};
+}
+
+QDockWidget *MainWindow::representativeDockForArea(Qt::DockWidgetArea area) const {
+  for (QDockWidget *dock : trackedDocks()) {
+    if (!dock || dock->isFloating() || !dock->isVisible() || dockWidgetArea(dock) != area) {
+      continue;
+    }
+    return dock;
+  }
+  return nullptr;
+}
+
+int MainWindow::currentDockAreaExtent(Qt::DockWidgetArea area) const {
+  int extent = 0;
+  for (QDockWidget *dock : trackedDocks()) {
+    if (!dock || dock->isFloating() || !dock->isVisible() || dockWidgetArea(dock) != area) {
+      continue;
+    }
+    extent = std::max(extent, primaryExtent(dock, area));
+  }
+  return extent;
+}
+
+void MainWindow::scheduleCaptureDockAreaTargets() {
+  const int captureGeneration = ++m_dockTargetCaptureGeneration;
+  QTimer::singleShot(0, this, [this, captureGeneration]() {
+    if (captureGeneration != m_dockTargetCaptureGeneration) {
+      return;
+    }
+    if (m_syncingDockState) {
+      scheduleCaptureDockAreaTargets();
+      return;
+    }
+    captureDockAreaTargets();
+  });
+}
+
+void MainWindow::captureDockAreaTargets() {
+  for (const Qt::DockWidgetArea area : kTrackedDockAreas) {
+    const int targetExtent = currentDockAreaExtent(area);
+    if (targetExtent > 0) {
+      m_dockAreaTargetExtents[area] = targetExtent;
+    }
+  }
+}
+
+void MainWindow::applyDockAreaTargets(bool widthExpanded, bool heightExpanded) {
+  for (const Qt::DockWidgetArea area : kTrackedDockAreas) {
+    if (!dockAreaCanGrow(area, widthExpanded, heightExpanded)) {
+      continue;
+    }
+
+    const int targetExtent = m_dockAreaTargetExtents.value(area, 0);
+    if (targetExtent <= 0) {
+      continue;
+    }
+
+    QDockWidget *dock = representativeDockForArea(area);
+    if (!dock) {
+      continue;
+    }
+
+    const int currentExtent = primaryExtent(dock, area);
+    if (currentExtent <= 0 || targetExtent <= currentExtent) {
+      continue;
+    }
+
+    resizeDocks({dock}, {targetExtent}, dockAreaPrimaryOrientation(area));
+    if (QLayout *mainLayout = layout()) {
+      mainLayout->activate();
+    }
+  }
+}
+
 void MainWindow::createElements() {
   setDocumentMode(true);
   setTabPosition(Qt::BottomDockWidgetArea, QTabWidget::North);
@@ -200,6 +311,12 @@ void MainWindow::createElements() {
   m_logger->hide();
   m_rawfile_dock->hide();
   m_coll_dock->hide();
+
+  for (QDockWidget *dock : trackedDocks()) {
+    if (dock) {
+      dock->installEventFilter(this);
+    }
+  }
 
   QList<QDockWidget *> docks = findChildren<QDockWidget *>(QString(), Qt::FindDirectChildrenOnly);
 
@@ -276,6 +393,7 @@ void MainWindow::createStatusBar() {
 }
 
 void MainWindow::showEvent(QShowEvent* event) {
+  m_syncingDockState = true;
   QMainWindow::showEvent(event);
 
   const int totalHeight = height();
@@ -292,6 +410,8 @@ void MainWindow::showEvent(QShowEvent* event) {
   resizeDocks({m_coll_dock, m_logger},
               {realizedCollectionDockHeight, realizedCollectionDockHeight},
               Qt::Vertical);
+  captureDockAreaTargets();
+  m_syncingDockState = false;
 
   updateDragOverlayGeometry();
 }
@@ -320,6 +440,29 @@ void MainWindow::routeSignals() {
 }
 
 bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
+  const bool trackedDock = obj == m_rawfile_dock || obj == m_vgmfile_dock || obj == m_coll_view_dock ||
+                           obj == m_coll_dock || obj == m_logger;
+  if (trackedDock && !m_syncingDockState) {
+    if (event->type() == QEvent::Show || event->type() == QEvent::Hide) {
+      scheduleCaptureDockAreaTargets();
+    }
+  }
+
+  if (event->type() == QEvent::MouseButtonPress) {
+    auto *mouseEvent = static_cast<QMouseEvent *>(event);
+    auto *widget = qobject_cast<QWidget *>(obj);
+    if (mouseEvent->button() == Qt::LeftButton && widget && (widget == this || isAncestorOf(widget)) &&
+        isDockSeparatorCursor(cursor().shape())) {
+      m_dockSeparatorDragActive = true;
+    }
+  } else if (event->type() == QEvent::MouseButtonRelease) {
+    auto *mouseEvent = static_cast<QMouseEvent *>(event);
+    if (mouseEvent->button() == Qt::LeftButton && m_dockSeparatorDragActive) {
+      m_dockSeparatorDragActive = false;
+      scheduleCaptureDockAreaTargets();
+    }
+  }
+
   if (event->type() == QEvent::KeyPress || event->type() == QEvent::KeyRelease) {
     auto* keyEvent = static_cast<QKeyEvent*>(event);
     if (!keyEvent->isAutoRepeat() && keyEvent->key() == HexViewInput::kModifierKey) {
@@ -327,6 +470,7 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
       NotificationCenter::the()->setSeekModifierActive(active);
     }
   } else if (event->type() == QEvent::ApplicationDeactivate) {
+    m_dockSeparatorDragActive = false;
     NotificationCenter::the()->setSeekModifierActive(false);
   }
   return QMainWindow::eventFilter(obj, event);
@@ -451,8 +595,24 @@ void MainWindow::showToast(const QString& message, ToastType type, int duration_
 }
 
 void MainWindow::resizeEvent(QResizeEvent *event) {
+  const bool widthExpanded = event->oldSize().width() >= 0 && event->size().width() > event->oldSize().width();
+  const bool heightExpanded = event->oldSize().height() >= 0 && event->size().height() > event->oldSize().height();
+  const int syncGeneration = ++m_dockResizeSyncGeneration;
+
+  m_syncingDockState = true;
   QMainWindow::resizeEvent(event);
   updateDragOverlayGeometry();
+
+  QTimer::singleShot(0, this, [this, syncGeneration, widthExpanded, heightExpanded]() {
+    if (syncGeneration != m_dockResizeSyncGeneration) {
+      return;
+    }
+    if (QLayout *mainLayout = layout()) {
+      mainLayout->activate();
+    }
+    applyDockAreaTargets(widthExpanded, heightExpanded);
+    m_syncingDockState = false;
+  });
 }
 
 void MainWindow::updateDragOverlayAppearance() {
