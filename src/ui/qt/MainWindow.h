@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <QHash>
+#include <QByteArray>
 #include <QList>
 #include <QMainWindow>
 #include <QUrl>
@@ -54,12 +54,7 @@ private:
   void configureWindowAgent();
   void createStatusBar();
   void routeSignals();
-  QList<QDockWidget *> trackedDocks() const;
-  QDockWidget *representativeDockForArea(Qt::DockWidgetArea area) const;
-  int currentDockAreaExtent(Qt::DockWidgetArea area) const;
-  void scheduleCaptureDockAreaTargets();
-  void captureDockAreaTargets();
-  void applyDockAreaTargets(bool widthExpanded, bool heightExpanded);
+  void scheduleSaveDockState();
   void updateDragOverlayAppearance();
   void updateDragOverlayGeometry();
 
@@ -81,9 +76,7 @@ private:
   WindowBar *m_windowBar{};
   QWidget *m_dragOverlay{};
   QWK::WidgetWindowAgent *m_windowAgent{};
-  QHash<Qt::DockWidgetArea, int> m_dockAreaTargetExtents{};
+  QByteArray m_preferredDockState{};
   bool m_dockSeparatorDragActive{};
-  bool m_syncingDockState{};
-  int m_dockTargetCaptureGeneration{};
   int m_dockResizeSyncGeneration{};
 };
