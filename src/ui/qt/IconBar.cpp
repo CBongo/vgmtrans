@@ -18,12 +18,21 @@
 namespace {
 constexpr int kTransportControlHeight = 32;
 constexpr int kTransportButtonSize = 32;
-constexpr int kTransportIconSize = 28;
+constexpr int kTransportIconSize = 29;
 constexpr int kInactiveTransportIconAlpha = 120;
 const QColor kDarkPlayColor(0x2f, 0xbf, 0x71);
 const QColor kLightPlayColor(0x24, 0x96, 0x59);
 const QColor kDarkStopColor(0xd8, 0x6b, 0x6b);
 const QColor kLightStopColor(0xb8, 0x4f, 0x4f);
+
+QIcon gradientTransportIcon(const QString &iconPath, QColor baseColor) {
+  const int alpha = baseColor.alpha();
+  QColor startColor = blendColors(baseColor, QColor(Qt::white), 0.8);
+  QColor endColor = blendColors(baseColor, QColor(Qt::black), 0.8);
+  startColor.setAlpha(alpha);
+  endColor.setAlpha(alpha);
+  return gradientStencilSvgIcon(iconPath, startColor, endColor);
+}
 }
 
 IconBar::IconBar(QWidget *parent) : QWidget(parent) {
@@ -61,7 +70,7 @@ void IconBar::setupControls() {
     button->setFixedSize(kTransportButtonSize, kTransportButtonSize);
     button->setIconSize(QSize(kTransportIconSize, kTransportIconSize));
     button->setStyleSheet(buttonStyle);
-    button->setIcon(stencilSvgIcon(iconPath, color));
+    button->setIcon(gradientTransportIcon(iconPath, color));
     button->setToolTip(toolTip);
     return button;
   };
@@ -146,15 +155,15 @@ void IconBar::playerStatusChanged(bool playing) {
   if (!(playing || canPlay)) {
     playColor.setAlpha(kInactiveTransportIconAlpha);
   }
-  m_play->setIcon(stencilSvgIcon(playing ? QStringLiteral(":/icons/pause.svg")
-                                         : QStringLiteral(":/icons/play.svg"),
-                                 playColor));
+  m_play->setIcon(gradientTransportIcon(playing ? QStringLiteral(":/icons/pause.svg")
+                                                : QStringLiteral(":/icons/play.svg"),
+                                        playColor));
 
   QColor stopColor = darkPalette ? kDarkStopColor : kLightStopColor;
   m_stop->setEnabled(hasActive);
   if (!m_stop->isEnabled()) {
     stopColor.setAlpha(kInactiveTransportIconAlpha);
   }
-  m_stop->setIcon(stencilSvgIcon(QStringLiteral(":/icons/stop.svg"), stopColor));
+  m_stop->setIcon(gradientTransportIcon(QStringLiteral(":/icons/stop.svg"), stopColor));
   m_slider->setEnabled(hasActive);
 }
