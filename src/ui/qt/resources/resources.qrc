@@ -4,7 +4,6 @@
   <file>fonts/Roboto_Mono/RobotoMono-VariableFont_wght.ttf</file>
   <file>icons/open_file.svg</file>
   <file>icons/play.svg</file>
-  <file>icons/play-light.svg</file>
   <file>icons/pause.svg</file>
   <file>icons/stop.svg</file>
   <file>icons/sequence.svg</file>
@@ -40,7 +39,6 @@
   <file>icons/toast_error.svg</file>
   <file>icons/toast_success.svg</file>
   <file>icons/toast_close.svg</file>
-  <file>icons/window-minimize.svg</file>
   <file>icons/minus.svg</file>
   <file>icons/plus.svg</file>
   <file>window-bar/minimize.svg</file>
