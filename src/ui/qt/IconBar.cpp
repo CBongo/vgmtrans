@@ -18,7 +18,12 @@
 namespace {
 constexpr int kTransportControlHeight = 32;
 constexpr int kTransportButtonSize = 32;
-constexpr int kTransportIconSize = 24;
+constexpr int kTransportIconSize = 28;
+constexpr int kInactiveTransportIconAlpha = 120;
+const QColor kDarkPlayColor(0x2f, 0xbf, 0x71);
+const QColor kLightPlayColor(0x24, 0x96, 0x59);
+const QColor kDarkStopColor(0xd8, 0x6b, 0x6b);
+const QColor kLightStopColor(0xb8, 0x4f, 0x4f);
 }
 
 IconBar::IconBar(QWidget *parent) : QWidget(parent) {
@@ -29,6 +34,8 @@ IconBar::IconBar(QWidget *parent) : QWidget(parent) {
 
 void IconBar::setupControls() {
   const bool darkPalette = isDarkPalette(palette());
+  const QColor playColor = darkPalette ? kDarkPlayColor : kLightPlayColor;
+  const QColor stopColor = darkPalette ? kDarkStopColor : kLightStopColor;
   const QColor hoverFill = darkPalette ? QColor(255, 255, 255, 18) : QColor(0, 0, 0, 12);
   const QColor pressedFill = darkPalette ? QColor(255, 255, 255, 28) : QColor(0, 0, 0, 20);
   const QString buttonStyle = QStringLiteral(
@@ -59,8 +66,7 @@ void IconBar::setupControls() {
     return button;
   };
 
-  m_play = makeButton(QStringLiteral(":/icons/play.svg"), QStringLiteral("Play selected collection (Space)"),
-                      QColor(QStringLiteral("#2fbf71")));
+  m_play = makeButton(QStringLiteral(":/icons/play.svg"), QStringLiteral("Play selected collection (Space)"), playColor);
   m_play->setEnabled(false);
   m_play->setWhatsThis("Select a collection in the panel above and click this \u25b6 button or press 'Space' to play it.\n"
                        "Clicking the button again will pause playback or play a different collection "
@@ -68,8 +74,7 @@ void IconBar::setupControls() {
   connect(m_play, &QToolButton::pressed, this, &IconBar::playToggle);
   layout()->addWidget(m_play);
 
-  m_stop = makeButton(QStringLiteral(":/icons/stop.svg"), QStringLiteral("Stop playback (Esc)"),
-                      QColor(QStringLiteral("#d86b6b")));
+  m_stop = makeButton(QStringLiteral(":/icons/stop.svg"), QStringLiteral("Stop playback (Esc)"), stopColor);
   m_stop->setEnabled(false);
   connect(m_stop, &QToolButton::pressed, this, &IconBar::stopPressed);
   layout()->addWidget(m_stop);
@@ -135,16 +140,21 @@ void IconBar::playerStatusChanged(bool playing) {
   m_skipNextPlaybackSliderUpdate = false;
   const bool hasActive = SequencePlayer::the().activeCollection() != nullptr;
   const bool canPlay = m_play->isEnabled();
+  const bool darkPalette = isDarkPalette(palette());
 
-  QColor playColor(QStringLiteral("#2fbf71"));
-  playColor.setAlpha(playing || canPlay ? 210 : 120);
+  QColor playColor = darkPalette ? kDarkPlayColor : kLightPlayColor;
+  if (!(playing || canPlay)) {
+    playColor.setAlpha(kInactiveTransportIconAlpha);
+  }
   m_play->setIcon(stencilSvgIcon(playing ? QStringLiteral(":/icons/pause.svg")
                                          : QStringLiteral(":/icons/play.svg"),
                                  playColor));
 
-  QColor stopColor(QStringLiteral("#d86b6b"));
+  QColor stopColor = darkPalette ? kDarkStopColor : kLightStopColor;
   m_stop->setEnabled(hasActive);
-  stopColor.setAlpha(m_stop->isEnabled() ? 210 : 120);
+  if (!m_stop->isEnabled()) {
+    stopColor.setAlpha(kInactiveTransportIconAlpha);
+  }
   m_stop->setIcon(stencilSvgIcon(QStringLiteral(":/icons/stop.svg"), stopColor));
   m_slider->setEnabled(hasActive);
 }
