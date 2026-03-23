@@ -13,17 +13,12 @@
 #include "services/NotificationCenter.h"
 #include "SequencePlayer.h"
 #include "SeekBar.h"
-#include "TintableSvgIconEngine.h"
 #include "UIHelpers.h"
 
 namespace {
 constexpr int kTransportControlHeight = 32;
 constexpr int kTransportButtonSize = 32;
 constexpr int kTransportIconSize = 24;
-
-QIcon stencilIcon(const QString &iconPath, const QColor &color) {
-  return QIcon(new TintableSvgIconEngine(iconPath, color));
-}
 }
 
 IconBar::IconBar(QWidget *parent) : QWidget(parent) {
@@ -59,7 +54,7 @@ void IconBar::setupControls() {
     button->setFixedSize(kTransportButtonSize, kTransportButtonSize);
     button->setIconSize(QSize(kTransportIconSize, kTransportIconSize));
     button->setStyleSheet(buttonStyle);
-    button->setIcon(stencilIcon(iconPath, color));
+    button->setIcon(stencilSvgIcon(iconPath, color));
     button->setToolTip(toolTip);
     return button;
   };
@@ -143,13 +138,13 @@ void IconBar::playerStatusChanged(bool playing) {
 
   QColor playColor(QStringLiteral("#2fbf71"));
   playColor.setAlpha(playing || canPlay ? 210 : 120);
-  m_play->setIcon(stencilIcon(playing ? QStringLiteral(":/icons/pause.svg")
-                                      : QStringLiteral(":/icons/play.svg"),
-                              playColor));
+  m_play->setIcon(stencilSvgIcon(playing ? QStringLiteral(":/icons/pause.svg")
+                                         : QStringLiteral(":/icons/play.svg"),
+                                 playColor));
 
   QColor stopColor(QStringLiteral("#d86b6b"));
   m_stop->setEnabled(hasActive);
   stopColor.setAlpha(m_stop->isEnabled() ? 210 : 120);
-  m_stop->setIcon(stencilIcon(QStringLiteral(":/icons/stop.svg"), stopColor));
+  m_stop->setIcon(stencilSvgIcon(QStringLiteral(":/icons/stop.svg"), stopColor));
   m_slider->setEnabled(hasActive);
 }

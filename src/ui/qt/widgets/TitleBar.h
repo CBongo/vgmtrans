@@ -30,9 +30,17 @@ public:
     return QSize(0, Size::VTab);
   }
 
+protected:
+  void changeEvent(QEvent *event) override;
+
 signals:
   void hideRequested();
   void addRequested();
+
+private:
+  void updateHideButtonStyle();
+
+  class QToolButton *m_hideButton{};
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(TitleBar::Buttons)

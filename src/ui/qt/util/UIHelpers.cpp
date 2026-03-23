@@ -5,6 +5,8 @@
 */
 
 #include "UIHelpers.h"
+#include "TintableSvgIconEngine.h"
+#include <QIcon>
 #include <QWidget>
 #include <QScrollArea>
 #include <QGraphicsScene>
@@ -41,6 +43,10 @@ void applyEffectToPixmap(QPixmap &src, QPixmap &tgt, QGraphicsEffect *effect, in
   scene.render(&ptr, QRectF(), QRectF(-extent, -extent, src.width() + extent*2, src.height() + extent*2));
 }
 
+QIcon stencilSvgIcon(const QString &iconPath, const QColor &color) {
+  return QIcon(new TintableSvgIconEngine(iconPath, color));
+}
+
 QString cssColor(const QColor &color) {
   return QStringLiteral("rgba(%1, %2, %3, %4)")
       .arg(color.red())
@@ -59,6 +65,43 @@ QColor blendColors(const QColor &foreground, const QColor &background, qreal for
 
 bool isDarkPalette(const QPalette &palette) {
   return palette.color(QPalette::Window).lightnessF() < 0.5;
+}
+
+QString toolBarButtonStyle(const QPalette &palette, bool checkable) {
+  const bool darkPalette = isDarkPalette(palette);
+  QColor hoverFill = palette.color(QPalette::Text);
+  hoverFill.setAlpha(darkPalette ? 18 : 12);
+  QColor pressedFill = palette.color(QPalette::Text);
+  pressedFill.setAlpha(darkPalette ? 28 : 20);
+
+  QString style = QStringLiteral(
+      "QToolButton {"
+      " border: none;"
+      " background: transparent;"
+      " border-radius: 6px;"
+      " padding: 0px;"
+      " margin: 0px;"
+      "}"
+      "QToolButton:hover { background: %1; }"
+      "QToolButton:pressed { background: %2; }")
+                      .arg(cssColor(hoverFill))
+                      .arg(cssColor(pressedFill));
+
+  if (checkable) {
+    QColor checkedFill = palette.color(QPalette::Text);
+    checkedFill.setAlpha(darkPalette ? 24 : 16);
+    style += QStringLiteral("QToolButton:checked { background: %1; }").arg(cssColor(checkedFill));
+  }
+
+  return style;
+}
+
+QColor toolBarButtonIconColor(const QPalette &palette, bool enabled) {
+  const QColor windowColor = palette.color(QPalette::Window);
+  const bool darkPalette = isDarkPalette(palette);
+  const QColor textColor =
+      enabled ? palette.color(QPalette::Text) : palette.color(QPalette::Disabled, QPalette::Text);
+  return blendColors(textColor, windowColor, enabled ? (darkPalette ? 0.72 : 0.56) : (darkPalette ? 0.6 : 0.46));
 }
 
 std::filesystem::path openSaveDirDialog() {

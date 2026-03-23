@@ -5,12 +5,19 @@
  */
 
 #include "TitleBar.h"
+#include <QEvent>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QSizePolicy>
-#include <QStyle>
 #include <QToolButton>
 #include "Metrics.h"
+#include "UIHelpers.h"
+
+namespace {
+constexpr int kTitleBarButtonWidth = 22;
+constexpr int kTitleBarButtonHeight = 20;
+constexpr int kTitleBarIconSize = 16;
+}
 
 TitleBar::TitleBar(const QString& title, Buttons buttons, QWidget *parent) : QWidget(parent) {
   setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
@@ -43,8 +50,28 @@ TitleBar::TitleBar(const QString& title, Buttons buttons, QWidget *parent) : QWi
   }
 
   if (buttons.testFlag(HideButton)) {
-    auto *hideButton = makeButton("Hide dock");
-    hideButton->setIcon(style()->standardIcon(QStyle::SP_TitleBarCloseButton));
-    connect(hideButton, &QToolButton::clicked, this, &TitleBar::hideRequested);
+    m_hideButton = makeButton("Hide");
+    m_hideButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    m_hideButton->setFixedSize(kTitleBarButtonWidth, kTitleBarButtonHeight);
+    m_hideButton->setIconSize(QSize(kTitleBarIconSize, kTitleBarIconSize));
+    updateHideButtonStyle();
+    connect(m_hideButton, &QToolButton::clicked, this, &TitleBar::hideRequested);
   }
+}
+
+void TitleBar::changeEvent(QEvent *event) {
+  QWidget::changeEvent(event);
+
+  if (event->type() == QEvent::PaletteChange || event->type() == QEvent::ApplicationPaletteChange) {
+    updateHideButtonStyle();
+  }
+}
+
+void TitleBar::updateHideButtonStyle() {
+  if (!m_hideButton) {
+    return;
+  }
+
+  m_hideButton->setStyleSheet(toolBarButtonStyle(palette()));
+  m_hideButton->setIcon(stencilSvgIcon(QStringLiteral(":/icons/minus.svg"), toolBarButtonIconColor(palette())));
 }

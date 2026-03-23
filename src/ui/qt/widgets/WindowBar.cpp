@@ -15,7 +15,6 @@
 #include <QStyle>
 #include <QToolButton>
 #include "Metrics.h"
-#include "TintableSvgIconEngine.h"
 #include "UIHelpers.h"
 
 namespace {
@@ -31,17 +30,13 @@ constexpr int kWindowsWindowButtonWidth = 46;
 constexpr int kWindowsWindowIconSize = 18;
 constexpr int kWindowsWindowGlyphSize = 12;
 
-QIcon stencilIcon(const QString &iconPath, const QColor &color) {
-  return QIcon(new TintableSvgIconEngine(iconPath, color));
-}
-
 QIcon multiStateStencilIcon(const QString &iconPath, const QColor &normalColor,
                             const QColor &activeColor, const QColor &disabledColor,
                             const QSize &size) {
   QIcon icon;
 
   const auto addMode = [&](QIcon::Mode mode, const QColor &color) {
-    const QIcon tintedIcon(new TintableSvgIconEngine(iconPath, color));
+    const QIcon tintedIcon = stencilSvgIcon(iconPath, color);
     icon.addPixmap(tintedIcon.pixmap(size), mode, QIcon::Off);
   };
 
@@ -353,29 +348,7 @@ void WindowBar::applyLeadingButtonStyle(QToolButton *button) const {
   if (!button) {
     return;
   }
-
-  const bool darkPalette = isDarkPalette(palette());
-  QColor hoverFill = palette().color(QPalette::Text);
-  hoverFill.setAlpha(darkPalette ? 18 : 12);
-  QColor pressedFill = palette().color(QPalette::Text);
-  pressedFill.setAlpha(darkPalette ? 28 : 20);
-  QColor checkedFill = palette().color(QPalette::Text);
-  checkedFill.setAlpha(darkPalette ? 24 : 16);
-
-  button->setStyleSheet(QStringLiteral(
-      "QToolButton {"
-      " border: none;"
-      " background: transparent;"
-      " border-radius: 6px;"
-      " padding: 0px;"
-      " margin: 0px;"
-      "}"
-      "QToolButton:hover { background: %1; }"
-      "QToolButton:pressed { background: %2; }"
-      "QToolButton:checked { background: %3; }")
-                            .arg(cssColor(hoverFill))
-                            .arg(cssColor(pressedFill))
-                            .arg(cssColor(checkedFill)));
+  button->setStyleSheet(toolBarButtonStyle(palette(), true));
 }
 
 void WindowBar::applyWindowButtonStyle(QToolButton *button, bool closeButton, bool iconButton) const {
@@ -448,18 +421,11 @@ QToolButton *WindowBar::createWindowButton(const QString& toolTip) {
 }
 
 void WindowBar::refreshLeadingToggleButtonIcons() {
-  const QColor windowColor = palette().color(QPalette::Window);
-  const bool darkPalette = isDarkPalette(palette());
-  const QColor enabledColor =
-      blendColors(palette().color(QPalette::Text), windowColor, darkPalette ? 0.72 : 0.56);
-  const QColor disabledColor =
-      blendColors(palette().color(QPalette::Disabled, QPalette::Text), windowColor, darkPalette ? 0.6 : 0.46);
-
   for (const auto &entry : m_leadingToggleButtons) {
     if (!entry.button) {
       continue;
     }
-    entry.button->setIcon(stencilIcon(entry.iconPath, entry.button->isEnabled() ? enabledColor : disabledColor));
+    entry.button->setIcon(stencilSvgIcon(entry.iconPath, toolBarButtonIconColor(palette(), entry.button->isEnabled())));
   }
 }
 
