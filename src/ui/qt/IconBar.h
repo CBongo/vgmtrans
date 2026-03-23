@@ -9,6 +9,7 @@
 #include <QWidget>
 
 class QToolButton;
+class QEvent;
 class QResizeEvent;
 class SeekBar;
 enum class PositionChangeOrigin;
@@ -26,6 +27,7 @@ signals:
   void seekingTo(int position, PositionChangeOrigin origin);
 
 protected:
+  void changeEvent(QEvent *event) override;
   void resizeEvent(QResizeEvent *event) override;
 
 private slots:

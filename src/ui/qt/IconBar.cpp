@@ -6,6 +6,7 @@
 
 #include "IconBar.h"
 
+#include <QEvent>
 #include <QLayout>
 #include <QHBoxLayout>
 #include <QToolButton>
@@ -49,20 +50,7 @@ void IconBar::setupControls() {
   const bool darkPalette = isDarkPalette(palette());
   const QColor playColor = darkPalette ? kDarkPlayColor : kLightPlayColor;
   const QColor stopColor = darkPalette ? kDarkStopColor : kLightStopColor;
-  const QColor hoverFill = darkPalette ? QColor(255, 255, 255, 18) : QColor(0, 0, 0, 12);
-  const QColor pressedFill = darkPalette ? QColor(255, 255, 255, 28) : QColor(0, 0, 0, 20);
-  const QString buttonStyle = QStringLiteral(
-      "QToolButton {"
-      " border: none;"
-      " background: transparent;"
-      " border-radius: 6px;"
-      " padding: 0px;"
-      " margin: 0px;"
-      "}"
-      "QToolButton:hover { background: %1; }"
-      "QToolButton:pressed { background: %2; }")
-                                  .arg(cssColor(hoverFill))
-                                  .arg(cssColor(pressedFill));
+  const QString buttonStyle = toolBarButtonStyle(palette());
 
   auto *buttonGroup = new QWidget(this);
   auto *buttonGroupLayout = new QHBoxLayout(buttonGroup);
@@ -133,6 +121,16 @@ void IconBar::setupControls() {
 void IconBar::showPlayInfo() {
   QWhatsThis::showText(m_play->mapToGlobal(m_play->pos()), m_play->whatsThis(), this);
   m_play->clearFocus();
+}
+
+void IconBar::changeEvent(QEvent *event) {
+  QWidget::changeEvent(event);
+  if (event->type() == QEvent::PaletteChange || event->type() == QEvent::ApplicationPaletteChange) {
+    const QString buttonStyle = toolBarButtonStyle(palette());
+    m_play->setStyleSheet(buttonStyle);
+    m_stop->setStyleSheet(buttonStyle);
+    playerStatusChanged(SequencePlayer::the().playing());
+  }
 }
 
 void IconBar::resizeEvent(QResizeEvent *event) {

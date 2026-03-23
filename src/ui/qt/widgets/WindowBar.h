@@ -45,11 +45,10 @@ protected:
   void showEvent(QShowEvent *event) override;
 
 private:
-  void applyLeadingButtonStyle(QToolButton *button) const;
   void applyWindowButtonStyle(QToolButton *button, bool closeButton = false, bool iconButton = false) const;
   void attachToTopLevelWindow();
   QToolButton *createWindowButton(const QString& toolTip);
-  void refreshLeadingToggleButtonIcons();
+  void refreshLeadingToggleButtons();
   void syncWindowButtons();
   void updateResponsiveLayout();
 

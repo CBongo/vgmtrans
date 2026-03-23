@@ -16,7 +16,6 @@
 #include <QShowEvent>
 #include <QStyle>
 #include <QToolButton>
-#include "Metrics.h"
 #include "UIHelpers.h"
 
 namespace {
@@ -160,8 +159,6 @@ WindowBar::WindowBar(QWidget *parent) : QWidget(parent) {
   m_layout->addWidget(m_rightControls, 0, Qt::AlignRight | Qt::AlignVCenter);
 #endif
 
-  syncWindowButtons();
-  updateResponsiveLayout();
 }
 
 QWidget *WindowBar::centerWidget() const {
@@ -273,14 +270,13 @@ void WindowBar::setLeadingToggleButtons(const QList<ToggleButtonSpec> &buttons) 
     button->setToolButtonStyle(Qt::ToolButtonIconOnly);
     button->setFixedSize(kTitleBarToggleButtonWidth, kTitleBarToggleButtonHeight);
     button->setIconSize(QSize(kTitleBarToggleIconSize, kTitleBarToggleIconSize));
-    applyLeadingButtonStyle(button);
     leadingLayout->addWidget(button);
-    connect(spec.action, &QAction::changed, this, [this]() { refreshLeadingToggleButtonIcons(); });
+    connect(spec.action, &QAction::changed, this, [this]() { refreshLeadingToggleButtons(); });
 
     m_leadingToggleButtons.append({button, spec.iconPath});
   }
 
-  refreshLeadingToggleButtonIcons();
+  refreshLeadingToggleButtons();
   updateResponsiveLayout();
 }
 
@@ -312,12 +308,7 @@ void WindowBar::changeEvent(QEvent *event) {
   QWidget::changeEvent(event);
 
   if (event->type() == QEvent::PaletteChange || event->type() == QEvent::ApplicationPaletteChange) {
-    refreshLeadingToggleButtonIcons();
-    for (const auto &entry : m_leadingToggleButtons) {
-      if (entry.button) {
-        applyLeadingButtonStyle(entry.button);
-      }
-    }
+    refreshLeadingToggleButtons();
     applyWindowButtonStyle(m_windowIconButton, false, true);
     applyWindowButtonStyle(m_minimizeButton);
     applyWindowButtonStyle(m_maximizeButton);
@@ -401,13 +392,6 @@ void WindowBar::updateResponsiveLayout() {
   m_layout->activate();
 }
 
-void WindowBar::applyLeadingButtonStyle(QToolButton *button) const {
-  if (!button) {
-    return;
-  }
-  button->setStyleSheet(toolBarButtonStyle(palette(), true));
-}
-
 void WindowBar::applyWindowButtonStyle(QToolButton *button, bool closeButton, bool iconButton) const {
   if (!button) {
     return;
@@ -477,11 +461,13 @@ QToolButton *WindowBar::createWindowButton(const QString& toolTip) {
   return button;
 }
 
-void WindowBar::refreshLeadingToggleButtonIcons() {
+void WindowBar::refreshLeadingToggleButtons() {
+  const QString style = toolBarButtonStyle(palette(), true);
   for (const auto &entry : m_leadingToggleButtons) {
     if (!entry.button) {
       continue;
     }
+    entry.button->setStyleSheet(style);
     entry.button->setIcon(stencilSvgIcon(entry.iconPath, toolBarButtonIconColor(palette(), entry.button->isEnabled())));
   }
 }
