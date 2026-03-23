@@ -49,34 +49,33 @@ void IconBar::setupControls() {
                                   .arg(cssColor(hoverFill))
                                   .arg(cssColor(pressedFill));
 
-  m_play = new QToolButton();
-  m_play->setAutoRaise(true);
-  m_play->setToolButtonStyle(Qt::ToolButtonIconOnly);
-  m_play->setFocusPolicy(Qt::NoFocus);
-  m_play->setCursor(Qt::ArrowCursor);
-  m_play->setFixedSize(kTransportButtonSize, kTransportButtonSize);
-  m_play->setIconSize(QSize(kTransportIconSize, kTransportIconSize));
-  m_play->setStyleSheet(buttonStyle);
-  m_play->setIcon(stencilIcon(QStringLiteral(":/icons/play.svg"), QColor(QStringLiteral("#2fbf71"))));
-  m_play->setDisabled(true);
-  m_play->setToolTip("Play selected collection (Space)");
+  const auto makeButton = [this, &buttonStyle](const QString &iconPath, const QString &toolTip,
+                                               const QColor &color) {
+    auto *button = new QToolButton(this);
+    button->setAutoRaise(true);
+    button->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    button->setFocusPolicy(Qt::NoFocus);
+    button->setCursor(Qt::ArrowCursor);
+    button->setFixedSize(kTransportButtonSize, kTransportButtonSize);
+    button->setIconSize(QSize(kTransportIconSize, kTransportIconSize));
+    button->setStyleSheet(buttonStyle);
+    button->setIcon(stencilIcon(iconPath, color));
+    button->setToolTip(toolTip);
+    return button;
+  };
+
+  m_play = makeButton(QStringLiteral(":/icons/play.svg"), QStringLiteral("Play selected collection (Space)"),
+                      QColor(QStringLiteral("#2fbf71")));
+  m_play->setEnabled(false);
   m_play->setWhatsThis("Select a collection in the panel above and click this \u25b6 button or press 'Space' to play it.\n"
                        "Clicking the button again will pause playback or play a different collection "
                        "if you have changed the selection.");
   connect(m_play, &QToolButton::pressed, this, &IconBar::playToggle);
   layout()->addWidget(m_play);
 
-  m_stop = new QToolButton();
-  m_stop->setAutoRaise(true);
-  m_stop->setToolButtonStyle(Qt::ToolButtonIconOnly);
-  m_stop->setFocusPolicy(Qt::NoFocus);
-  m_stop->setCursor(Qt::ArrowCursor);
-  m_stop->setFixedSize(kTransportButtonSize, kTransportButtonSize);
-  m_stop->setIconSize(QSize(kTransportIconSize, kTransportIconSize));
-  m_stop->setStyleSheet(buttonStyle);
-  m_stop->setIcon(stencilIcon(QStringLiteral(":/icons/stop.svg"), QColor(QStringLiteral("#d86b6b"))));
-  m_stop->setDisabled(true);
-  m_stop->setToolTip("Stop playback (Esc)");
+  m_stop = makeButton(QStringLiteral(":/icons/stop.svg"), QStringLiteral("Stop playback (Esc)"),
+                      QColor(QStringLiteral("#d86b6b")));
+  m_stop->setEnabled(false);
   connect(m_stop, &QToolButton::pressed, this, &IconBar::stopPressed);
   layout()->addWidget(m_stop);
 
@@ -143,7 +142,6 @@ void IconBar::playerStatusChanged(bool playing) {
   const bool canPlay = m_play->isEnabled();
 
   QColor playColor(QStringLiteral("#2fbf71"));
-  // playColor.setAlpha(playing ? 210 : (canPlay ? 210 : 120));
   playColor.setAlpha(playing || canPlay ? 210 : 120);
   m_play->setIcon(stencilIcon(playing ? QStringLiteral(":/icons/pause.svg")
                                       : QStringLiteral(":/icons/play.svg"),
@@ -151,8 +149,7 @@ void IconBar::playerStatusChanged(bool playing) {
 
   QColor stopColor(QStringLiteral("#d86b6b"));
   m_stop->setEnabled(hasActive);
-  // stopColor.setAlpha(m_stop->isEnabled() ? (playing ? 210 : 210) : 120);
-  stopColor.setAlpha(m_stop->isEnabled() && playing ? 210 : 120);
+  stopColor.setAlpha(m_stop->isEnabled() ? 210 : 120);
   m_stop->setIcon(stencilIcon(QStringLiteral(":/icons/stop.svg"), stopColor));
   m_slider->setEnabled(hasActive);
 }

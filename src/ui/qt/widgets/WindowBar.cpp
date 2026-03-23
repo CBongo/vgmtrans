@@ -157,7 +157,6 @@ WindowBar::WindowBar(QWidget *parent) : QWidget(parent) {
   m_layout->addWidget(m_rightControls, 0, Qt::AlignRight | Qt::AlignVCenter);
 #endif
 
-  updateBalanceSpacers();
   syncWindowButtons();
 }
 
@@ -271,11 +270,10 @@ void WindowBar::setLeadingToggleButtons(const QList<ToggleButtonSpec> &buttons) 
     leadingLayout->addWidget(button);
     connect(spec.action, &QAction::changed, this, [this]() { refreshLeadingToggleButtonIcons(); });
 
-    m_leadingToggleButtons.append({button, spec.action, spec.iconPath});
+    m_leadingToggleButtons.append({button, spec.iconPath});
   }
 
   refreshLeadingToggleButtonIcons();
-  updateBalanceSpacers();
 }
 
 QWidget *WindowBar::leadingControls() const {
@@ -463,10 +461,6 @@ void WindowBar::refreshLeadingToggleButtonIcons() {
     }
     entry.button->setIcon(stencilIcon(entry.iconPath, entry.button->isEnabled() ? enabledColor : disabledColor));
   }
-}
-
-void WindowBar::updateBalanceSpacers() {
-  return;
 }
 
 void WindowBar::syncWindowButtons() {
