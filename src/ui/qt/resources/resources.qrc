@@ -42,6 +42,7 @@
   <file>icons/toast_close.svg</file>
   <file>icons/window-minimize.svg</file>
   <file>icons/minus.svg</file>
+  <file>icons/plus.svg</file>
   <file>window-bar/minimize.svg</file>
   <file>window-bar/maximize.svg</file>
   <file>window-bar/restore.svg</file>

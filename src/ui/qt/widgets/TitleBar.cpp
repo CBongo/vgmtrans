@@ -8,8 +8,10 @@
 #include <QApplication>
 #include <QDockWidget>
 #include <QEvent>
+#include <QGraphicsOpacityEffect>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QPropertyAnimation>
 #include <QSizePolicy>
 #include <QToolButton>
 #include "Metrics.h"
@@ -37,6 +39,16 @@ TitleBar::TitleBar(const QString& title, Buttons buttons, QWidget *parent) : QWi
   buttonLayout->setContentsMargins(0, 0, 0, 0);
   buttonLayout->setSpacing(4);
   titleLayout->addWidget(m_buttonContainer);
+  m_buttonOpacity = new QGraphicsOpacityEffect(m_buttonContainer);
+  m_buttonOpacity->setOpacity(0.0);
+  m_buttonContainer->setGraphicsEffect(m_buttonOpacity);
+  m_buttonFade = new QPropertyAnimation(m_buttonOpacity, "opacity", this);
+  m_buttonFade->setDuration(120);
+  connect(m_buttonFade, &QPropertyAnimation::finished, this, [this]() {
+    if (!m_buttonsVisible && m_buttonOpacity->opacity() == 0.0) {
+      m_buttonContainer->hide();
+    }
+  });
   m_buttonContainer->hide();
 
   QFont labelFont("Arial", -1, QFont::Bold, true);
@@ -48,24 +60,23 @@ TitleBar::TitleBar(const QString& title, Buttons buttons, QWidget *parent) : QWi
     button->setFocusPolicy(Qt::NoFocus);
     button->setToolTip(toolTip);
     button->setCursor(Qt::ArrowCursor);
+    button->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    button->setFixedSize(kTitleBarButtonWidth, kTitleBarButtonHeight);
+    button->setIconSize(QSize(kTitleBarIconSize, kTitleBarIconSize));
     buttonLayout->addWidget(button);
     return button;
   };
 
   if (buttons.testFlag(NewButton)) {
-    auto *newButton = makeButton("New collection");
-    newButton->setText("New");
-    connect(newButton, &QToolButton::clicked, this, &TitleBar::addRequested);
+    m_newButton = makeButton("New collection");
+    connect(m_newButton, &QToolButton::clicked, this, &TitleBar::addRequested);
   }
 
   if (buttons.testFlag(HideButton)) {
     m_hideButton = makeButton("Hide");
-    m_hideButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
-    m_hideButton->setFixedSize(kTitleBarButtonWidth, kTitleBarButtonHeight);
-    m_hideButton->setIconSize(QSize(kTitleBarIconSize, kTitleBarIconSize));
-    updateHideButtonStyle();
     connect(m_hideButton, &QToolButton::clicked, this, &TitleBar::hideRequested);
   }
+  updateButtonStyles();
 
   installEventFilter(this);
   if (auto *dock = qobject_cast<QDockWidget *>(parentWidget())) {
@@ -82,7 +93,7 @@ void TitleBar::changeEvent(QEvent *event) {
   QWidget::changeEvent(event);
 
   if (event->type() == QEvent::PaletteChange || event->type() == QEvent::ApplicationPaletteChange) {
-    updateHideButtonStyle();
+    updateButtonStyles();
   }
 }
 
@@ -96,13 +107,19 @@ bool TitleBar::eventFilter(QObject *watched, QEvent *event) {
   return QWidget::eventFilter(watched, event);
 }
 
-void TitleBar::updateHideButtonStyle() {
-  if (!m_hideButton) {
-    return;
+void TitleBar::updateButtonStyles() {
+  const auto style = toolBarButtonStyle(palette());
+  const auto color = toolBarButtonIconColor(palette());
+
+  if (m_newButton) {
+    m_newButton->setStyleSheet(style);
+    m_newButton->setIcon(stencilSvgIcon(QStringLiteral(":/icons/plus.svg"), color));
   }
 
-  m_hideButton->setStyleSheet(toolBarButtonStyle(palette()));
-  m_hideButton->setIcon(stencilSvgIcon(QStringLiteral(":/icons/minus.svg"), toolBarButtonIconColor(palette())));
+  if (m_hideButton) {
+    m_hideButton->setStyleSheet(style);
+    m_hideButton->setIcon(stencilSvgIcon(QStringLiteral(":/icons/minus.svg"), color));
+  }
 }
 
 void TitleBar::updateButtonsVisible() {
@@ -114,5 +131,15 @@ void TitleBar::updateButtonsVisible() {
   QWidget *focus = QApplication::focusWidget();
   const bool focused = dock && focus && (focus == dock || dock->isAncestorOf(focus));
   const bool hovered = underMouse() || (dock && dock->underMouse()) || (dock && dock->widget() && dock->widget()->underMouse());
-  m_buttonContainer->setVisible(hovered || focused);
+  const bool visible = hovered || focused;
+  if (visible == m_buttonsVisible) {
+    return;
+  }
+
+  m_buttonsVisible = visible;
+  m_buttonFade->stop();
+  m_buttonContainer->show();
+  m_buttonFade->setStartValue(m_buttonOpacity->opacity());
+  m_buttonFade->setEndValue(visible ? 1.0 : 0.0);
+  m_buttonFade->start();
 }

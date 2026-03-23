@@ -39,11 +39,15 @@ signals:
   void addRequested();
 
 private:
-  void updateHideButtonStyle();
+  void updateButtonStyles();
   void updateButtonsVisible();
 
   QWidget *m_buttonContainer{};
+  class QGraphicsOpacityEffect *m_buttonOpacity{};
+  class QPropertyAnimation *m_buttonFade{};
+  class QToolButton *m_newButton{};
   class QToolButton *m_hideButton{};
+  bool m_buttonsVisible{};
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(TitleBar::Buttons)
