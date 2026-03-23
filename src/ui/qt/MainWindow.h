@@ -14,7 +14,7 @@
 class QWidget;
 class QDockWidget;
 class MenuBar;
-class IconBar;
+class PlaybackControls;
 class Logger;
 class VGMCollListView;
 class VGMCollView;
@@ -65,7 +65,7 @@ private:
   QDockWidget *m_coll_dock{};
   QDockWidget *m_coll_view_dock{};
   MenuBar *m_menu_bar{};
-  IconBar *m_icon_bar{};
+  PlaybackControls *m_playback_controls{};
   StatusBarContent *statusBarContent{};
   Logger *m_logger{};
   VGMCollListView *m_coll_listview{};

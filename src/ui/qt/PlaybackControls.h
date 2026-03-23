@@ -14,10 +14,10 @@ class QResizeEvent;
 class SeekBar;
 enum class PositionChangeOrigin;
 
-class IconBar final : public QWidget {
+class PlaybackControls final : public QWidget {
   Q_OBJECT
 public:
-  explicit IconBar(QWidget *parent = nullptr);
+  explicit PlaybackControls(QWidget *parent = nullptr);
 
   void showPlayInfo();
 

@@ -4,7 +4,7 @@
  * refer to the included LICENSE.txt file
  */
 
-#include "IconBar.h"
+#include "PlaybackControls.h"
 
 #include <QEvent>
 #include <QLayout>
@@ -38,14 +38,14 @@ QIcon gradientTransportIcon(const QString &iconPath, QColor baseColor) {
 }
 }
 
-IconBar::IconBar(QWidget *parent) : QWidget(parent) {
+PlaybackControls::PlaybackControls(QWidget *parent) : QWidget(parent) {
   auto *barLayout = new QHBoxLayout();
   barLayout->setContentsMargins(0, 0, 0, 0);
   setLayout(barLayout);
   setupControls();
 }
 
-void IconBar::setupControls() {
+void PlaybackControls::setupControls() {
   auto *barLayout = static_cast<QHBoxLayout *>(layout());
   const bool darkPalette = isDarkPalette(palette());
   const QColor playColor = darkPalette ? kDarkPlayColor : kLightPlayColor;
@@ -77,12 +77,12 @@ void IconBar::setupControls() {
   m_play->setWhatsThis("Select a collection in the panel above and click this \u25b6 button or press 'Space' to play it.\n"
                        "Clicking the button again will pause playback or play a different collection "
                        "if you have changed the selection.");
-  connect(m_play, &QToolButton::pressed, this, &IconBar::playToggle);
+  connect(m_play, &QToolButton::pressed, this, &PlaybackControls::playToggle);
   buttonGroupLayout->addWidget(m_play);
 
   m_stop = makeButton(QStringLiteral(":/icons/stop.svg"), QStringLiteral("Stop playback (Esc)"), stopColor);
   m_stop->setEnabled(false);
-  connect(m_stop, &QToolButton::pressed, this, &IconBar::stopPressed);
+  connect(m_stop, &QToolButton::pressed, this, &PlaybackControls::stopPressed);
   buttonGroupLayout->addWidget(m_stop);
 
   buttonGroup->setFixedWidth(buttonGroup->sizeHint().width());
@@ -112,18 +112,19 @@ void IconBar::setupControls() {
             m_play->setEnabled(coll != nullptr);
             playerStatusChanged(SequencePlayer::the().playing());
           });
-  connect(&SequencePlayer::the(), &SequencePlayer::statusChange, this, &IconBar::playerStatusChanged);
-  connect(&SequencePlayer::the(), &SequencePlayer::playbackPositionChanged, this, &IconBar::playbackRangeUpdate);
+  connect(&SequencePlayer::the(), &SequencePlayer::statusChange, this, &PlaybackControls::playerStatusChanged);
+  connect(&SequencePlayer::the(), &SequencePlayer::playbackPositionChanged, this,
+          &PlaybackControls::playbackRangeUpdate);
   updateSeekBarVisibility();
   playerStatusChanged(SequencePlayer::the().playing());
 }
 
-void IconBar::showPlayInfo() {
+void PlaybackControls::showPlayInfo() {
   QWhatsThis::showText(m_play->mapToGlobal(m_play->pos()), m_play->whatsThis(), this);
   m_play->clearFocus();
 }
 
-void IconBar::changeEvent(QEvent *event) {
+void PlaybackControls::changeEvent(QEvent *event) {
   QWidget::changeEvent(event);
   if (event->type() == QEvent::PaletteChange || event->type() == QEvent::ApplicationPaletteChange) {
     const QString buttonStyle = toolBarButtonStyle(palette());
@@ -133,12 +134,12 @@ void IconBar::changeEvent(QEvent *event) {
   }
 }
 
-void IconBar::resizeEvent(QResizeEvent *event) {
+void PlaybackControls::resizeEvent(QResizeEvent *event) {
   QWidget::resizeEvent(event);
   updateSeekBarVisibility();
 }
 
-void IconBar::playbackRangeUpdate(int cur, int max, PositionChangeOrigin origin) {
+void PlaybackControls::playbackRangeUpdate(int cur, int max, PositionChangeOrigin origin) {
   const int previousMaximum = m_slider->maximum();
   const bool rangeChanged = max != previousMaximum;
   const bool forceImmediateUpdate = cur == m_slider->minimum() || rangeChanged;
@@ -164,7 +165,7 @@ void IconBar::playbackRangeUpdate(int cur, int max, PositionChangeOrigin origin)
   m_slider->setValue(cur);
 }
 
-void IconBar::playerStatusChanged(bool playing) {
+void PlaybackControls::playerStatusChanged(bool playing) {
   m_skipNextPlaybackSliderUpdate = false;
   const bool hasActive = SequencePlayer::the().activeCollection() != nullptr;
   const bool canPlay = m_play->isEnabled();
@@ -187,7 +188,7 @@ void IconBar::playerStatusChanged(bool playing) {
   m_slider->setEnabled(hasActive);
 }
 
-void IconBar::updateSeekBarVisibility() {
+void PlaybackControls::updateSeekBarVisibility() {
   if (m_slider) {
     m_slider->setVisible(contentsRect().width() >= kSeekBarVisibleWidthThreshold);
   }

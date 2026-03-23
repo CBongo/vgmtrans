@@ -30,7 +30,7 @@ constexpr int kWindowsWindowIconButtonWidth = 36;
 constexpr int kWindowsWindowButtonWidth = 46;
 constexpr int kWindowsWindowIconSize = 18;
 constexpr int kWindowsWindowGlyphSize = 12;
-constexpr qreal kIconBarFreeWidthFraction = 0.55;
+constexpr qreal kPlaybackControlsFreeWidthFraction = 0.55;
 constexpr qreal kFreeWidthThreshold = 0.3;
 
 QIcon multiStateStencilIcon(const QString &iconPath, const QColor &normalColor,
@@ -85,11 +85,11 @@ WindowBar::WindowBar(QWidget *parent) : QWidget(parent) {
   m_rightCenterSpacer = new QWidget(this);
   m_rightCenterSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
-  m_leadingControls = new QWidget(this);
-  auto *leadingLayout = new QHBoxLayout(m_leadingControls);
-  leadingLayout->setContentsMargins(0, 8, 0, 7);
-  leadingLayout->setSpacing(4);
-  m_leadingControls->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
+  m_dockControls = new QWidget(this);
+  auto *dockControlsLayout = new QHBoxLayout(m_dockControls);
+  dockControlsLayout->setContentsMargins(0, 8, 0, 7);
+  dockControlsLayout->setSpacing(4);
+  m_dockControls->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 
 #if defined(Q_OS_MACOS) || defined(Q_OS_MAC)
   m_systemButtonArea = new QWidget(this);
@@ -98,7 +98,7 @@ WindowBar::WindowBar(QWidget *parent) : QWidget(parent) {
   m_layout->addWidget(m_leftCenterSpacer);
   m_layout->addWidget(m_centerWidget, 0, Qt::AlignVCenter);
   m_layout->addWidget(m_rightCenterSpacer);
-  m_layout->addWidget(m_leadingControls, 0, Qt::AlignVCenter);
+  m_layout->addWidget(m_dockControls, 0, Qt::AlignVCenter);
 #else
 #if defined(Q_OS_WIN)
   m_windowIconButton = createWindowButton(QString());
@@ -110,7 +110,7 @@ WindowBar::WindowBar(QWidget *parent) : QWidget(parent) {
   m_layout->addWidget(m_leftCenterSpacer);
   m_layout->addWidget(m_centerWidget, 0, Qt::AlignVCenter);
   m_layout->addWidget(m_rightCenterSpacer);
-  m_layout->addWidget(m_leadingControls, 0, Qt::AlignVCenter);
+  m_layout->addWidget(m_dockControls, 0, Qt::AlignVCenter);
   m_layout->addSpacing(8);
 
   m_rightControls = new QWidget(this);
@@ -238,30 +238,30 @@ void WindowBar::setMenuBarWidget(QWidget *widget) {
 #endif
 }
 
-void WindowBar::setLeadingToggleButtons(const QList<ToggleButtonSpec> &buttons) {
-  if (!m_leadingControls) {
+void WindowBar::setDockToggleButtons(const QList<ToggleButtonSpec> &buttons) {
+  if (!m_dockControls) {
     return;
   }
 
-  auto *leadingLayout = qobject_cast<QHBoxLayout *>(m_leadingControls->layout());
-  if (!leadingLayout) {
+  auto *dockControlsLayout = qobject_cast<QHBoxLayout *>(m_dockControls->layout());
+  if (!dockControlsLayout) {
     return;
   }
 
-  while (QLayoutItem *item = leadingLayout->takeAt(0)) {
+  while (QLayoutItem *item = dockControlsLayout->takeAt(0)) {
     if (QWidget *widget = item->widget()) {
       widget->deleteLater();
     }
     delete item;
   }
-  m_leadingToggleButtons.clear();
+  m_dockToggleButtons.clear();
 
   for (const auto &spec : buttons) {
     if (!spec.action) {
       continue;
     }
 
-    auto *button = new QToolButton(m_leadingControls);
+    auto *button = new QToolButton(m_dockControls);
     button->setDefaultAction(spec.action);
     button->setAutoRaise(true);
     button->setCheckable(true);
@@ -270,18 +270,18 @@ void WindowBar::setLeadingToggleButtons(const QList<ToggleButtonSpec> &buttons) 
     button->setToolButtonStyle(Qt::ToolButtonIconOnly);
     button->setFixedSize(kTitleBarToggleButtonWidth, kTitleBarToggleButtonHeight);
     button->setIconSize(QSize(kTitleBarToggleIconSize, kTitleBarToggleIconSize));
-    leadingLayout->addWidget(button);
-    connect(spec.action, &QAction::changed, this, [this]() { refreshLeadingToggleButtons(); });
+    dockControlsLayout->addWidget(button);
+    connect(spec.action, &QAction::changed, this, [this]() { refreshDockToggleButtons(); });
 
-    m_leadingToggleButtons.append({button, spec.iconPath});
+    m_dockToggleButtons.append({button, spec.iconPath});
   }
 
-  refreshLeadingToggleButtons();
+  refreshDockToggleButtons();
   updateResponsiveLayout();
 }
 
-QWidget *WindowBar::leadingControls() const {
-  return m_leadingControls;
+QWidget *WindowBar::dockControls() const {
+  return m_dockControls;
 }
 
 QAbstractButton *WindowBar::windowIconButton() const {
@@ -308,7 +308,7 @@ void WindowBar::changeEvent(QEvent *event) {
   QWidget::changeEvent(event);
 
   if (event->type() == QEvent::PaletteChange || event->type() == QEvent::ApplicationPaletteChange) {
-    refreshLeadingToggleButtons();
+    refreshDockToggleButtons();
     applyWindowButtonStyle(m_windowIconButton, false, true);
     applyWindowButtonStyle(m_minimizeButton);
     applyWindowButtonStyle(m_maximizeButton);
@@ -365,7 +365,7 @@ void WindowBar::updateResponsiveLayout() {
 
   const QMargins margins = m_layout->contentsMargins();
   const int centerMinimumWidth = std::max(0, m_centerWidget->minimumSizeHint().width());
-  const int leadingWidth = m_leadingToggleButtons.isEmpty() ? 0 : m_leadingControls->sizeHint().width();
+  const int dockControlsWidth = m_dockToggleButtons.isEmpty() ? 0 : m_dockControls->sizeHint().width();
 #if defined(Q_OS_MACOS) || defined(Q_OS_MAC)
   const int baseFixedWidth = margins.left() + margins.right() + visibleWidth(m_systemButtonArea);
 #else
@@ -374,19 +374,21 @@ void WindowBar::updateResponsiveLayout() {
       visibleWidth(m_rightControls) + 8;
 #endif
   const int availableWidth = std::max(0, width() - baseFixedWidth);
-  const int availableWidthWithLeading = std::max(0, availableWidth - leadingWidth);
-  const int desiredCenterWidthWithLeading =
-      static_cast<int>(std::lround(availableWidthWithLeading * kIconBarFreeWidthFraction));
-  const int unusedFreeWidthWithLeading = std::max(0, availableWidthWithLeading - desiredCenterWidthWithLeading);
-  const bool showLeadingControls =
-      leadingWidth > 0 &&
-      (static_cast<qreal>(unusedFreeWidthWithLeading) / std::max(1, availableWidth)) >= kFreeWidthThreshold;
+  const int availableWidthWithDockControls = std::max(0, availableWidth - dockControlsWidth);
+  const int desiredCenterWidthWithDockControls =
+      static_cast<int>(std::lround(availableWidthWithDockControls * kPlaybackControlsFreeWidthFraction));
+  const int unusedFreeWidthWithDockControls =
+      std::max(0, availableWidthWithDockControls - desiredCenterWidthWithDockControls);
+  const bool showDockControls =
+      dockControlsWidth > 0 &&
+      (static_cast<qreal>(unusedFreeWidthWithDockControls) / std::max(1, availableWidth)) >= kFreeWidthThreshold;
 
-  m_leadingControls->setVisible(showLeadingControls);
-  m_rightCenterSpacer->setVisible(showLeadingControls);
+  m_dockControls->setVisible(showDockControls);
+  m_rightCenterSpacer->setVisible(showDockControls);
 
-  const int availableCenterWidth = std::max(0, availableWidth - (showLeadingControls ? leadingWidth : 0));
-  const int desiredCenterWidth = static_cast<int>(std::lround(availableCenterWidth * kIconBarFreeWidthFraction));
+  const int availableCenterWidth = std::max(0, availableWidth - (showDockControls ? dockControlsWidth : 0));
+  const int desiredCenterWidth =
+      static_cast<int>(std::lround(availableCenterWidth * kPlaybackControlsFreeWidthFraction));
   m_centerWidget->setFixedWidth(
       std::min(availableCenterWidth, std::max(centerMinimumWidth, desiredCenterWidth)));
   m_layout->activate();
@@ -461,9 +463,9 @@ QToolButton *WindowBar::createWindowButton(const QString& toolTip) {
   return button;
 }
 
-void WindowBar::refreshLeadingToggleButtons() {
+void WindowBar::refreshDockToggleButtons() {
   const QString style = toolBarButtonStyle(palette(), true);
-  for (const auto &entry : m_leadingToggleButtons) {
+  for (const auto &entry : m_dockToggleButtons) {
     if (!entry.button) {
       continue;
     }

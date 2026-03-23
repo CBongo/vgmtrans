@@ -30,8 +30,8 @@ public:
   void setCenterWidget(QWidget *widget);
   QWidget *menuBarWidget() const;
   void setMenuBarWidget(QWidget *widget);
-  void setLeadingToggleButtons(const QList<ToggleButtonSpec> &buttons);
-  QWidget *leadingControls() const;
+  void setDockToggleButtons(const QList<ToggleButtonSpec> &buttons);
+  QWidget *dockControls() const;
   QAbstractButton *windowIconButton() const;
   QWidget *systemButtonArea() const;
   QAbstractButton *minimizeButton() const;
@@ -48,11 +48,11 @@ private:
   void applyWindowButtonStyle(QToolButton *button, bool closeButton = false, bool iconButton = false) const;
   void attachToTopLevelWindow();
   QToolButton *createWindowButton(const QString& toolTip);
-  void refreshLeadingToggleButtons();
+  void refreshDockToggleButtons();
   void syncWindowButtons();
   void updateResponsiveLayout();
 
-  struct LeadingToggleButton {
+  struct DockToggleButton {
     QToolButton *button{};
     QString iconPath;
   };
@@ -64,7 +64,7 @@ private:
   QWidget *m_centerWidget{};
   QWidget *m_leftCenterSpacer{};
   QWidget *m_rightCenterSpacer{};
-  QWidget *m_leadingControls{};
+  QWidget *m_dockControls{};
   QToolButton *m_windowIconButton{};
   QWidget *m_rightControls{};
   QWidget *m_systemButtonArea{};
@@ -72,5 +72,5 @@ private:
   QToolButton *m_maximizeButton{};
   QToolButton *m_closeButton{};
   QPointer<QWidget> m_trackedWindow;
-  QList<LeadingToggleButton> m_leadingToggleButtons;
+  QList<DockToggleButton> m_dockToggleButtons;
 };

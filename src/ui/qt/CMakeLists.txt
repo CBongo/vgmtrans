@@ -36,7 +36,7 @@ add_executable(vgmtrans ${GUI_TYPE})
 target_sources(vgmtrans
   PRIVATE
     About.cpp
-    IconBar.cpp
+    PlaybackControls.cpp
     Logger.cpp
     MainWindow.cpp
     ManualCollectionDialog.cpp
@@ -76,7 +76,7 @@ target_sources(vgmtrans
     FILE_SET HEADERS TYPE HEADERS
     FILES
       About.h
-      IconBar.h
+      PlaybackControls.h
       Logger.h
       MainWindow.h
       ManualCollectionDialog.h

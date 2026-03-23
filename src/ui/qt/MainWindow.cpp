@@ -32,7 +32,7 @@
 #include "MainWindow.h"
 #include "QtVGMRoot.h"
 #include "MenuBar.h"
-#include "IconBar.h"
+#include "PlaybackControls.h"
 #include "About.h"
 #include "Logger.h"
 #include "ManualCollectionDialog.h"
@@ -166,7 +166,7 @@ void MainWindow::createElements() {
 
   m_coll_listview = new VGMCollListView();
   m_coll_view = new VGMCollView();
-  m_icon_bar = new IconBar();
+  m_playback_controls = new PlaybackControls();
 
   auto *central_wrapper = new QWidget(this);
   auto *central_layout = new QVBoxLayout();
@@ -214,8 +214,8 @@ void MainWindow::createElements() {
   m_windowBar->setMenuBarWidget(m_menu_bar);
 #endif
   m_menu_bar->setShortcutHost(this);
-  m_windowBar->setCenterWidget(m_icon_bar);
-  m_windowBar->setLeadingToggleButtons({
+  m_windowBar->setCenterWidget(m_playback_controls);
+  m_windowBar->setDockToggleButtons({
       {m_rawfile_dock->toggleViewAction(), QStringLiteral(":/icons/file.svg")},
       {m_vgmfile_dock->toggleViewAction(), QStringLiteral(":/icons/sequence.svg")},
       {m_coll_view_dock->toggleViewAction(), QStringLiteral(":/icons/binary.svg")},
@@ -232,8 +232,8 @@ void MainWindow::configureWindowAgent() {
   }
 
   m_windowAgent->setTitleBar(m_windowBar);
-  if (QWidget *leadingControls = m_windowBar->leadingControls()) {
-    m_windowAgent->setHitTestVisible(leadingControls, true);
+  if (QWidget *dockControls = m_windowBar->dockControls()) {
+    m_windowAgent->setHitTestVisible(dockControls, true);
   }
   if (QWidget *menuBarWidget = m_windowBar->menuBarWidget()) {
     m_windowAgent->setHitTestVisible(menuBarWidget, true);
@@ -305,11 +305,13 @@ void MainWindow::routeSignals() {
     about.exec();
   });
 
-  connect(m_icon_bar, &IconBar::playToggle, m_coll_listview,
+  connect(m_playback_controls, &PlaybackControls::playToggle, m_coll_listview,
           &VGMCollListView::handlePlaybackRequest);
-  connect(m_coll_listview, &VGMCollListView::nothingToPlay, m_icon_bar, &IconBar::showPlayInfo);
-  connect(m_icon_bar, &IconBar::stopPressed, m_coll_listview, &VGMCollListView::handleStopRequest);
-  connect(m_icon_bar, &IconBar::seekingTo, &SequencePlayer::the(), &SequencePlayer::seek);
+  connect(m_coll_listview, &VGMCollListView::nothingToPlay, m_playback_controls,
+          &PlaybackControls::showPlayInfo);
+  connect(m_playback_controls, &PlaybackControls::stopPressed, m_coll_listview,
+          &VGMCollListView::handleStopRequest);
+  connect(m_playback_controls, &PlaybackControls::seekingTo, &SequencePlayer::the(), &SequencePlayer::seek);
   connect(&qtVGMRoot, &QtVGMRoot::UI_toastRequested, this, &MainWindow::showToast);
 
   auto *playShortcut = new QShortcut(QKeySequence(Qt::Key_Space), this);
