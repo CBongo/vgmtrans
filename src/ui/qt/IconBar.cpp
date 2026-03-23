@@ -64,9 +64,14 @@ void IconBar::setupControls() {
                                   .arg(cssColor(hoverFill))
                                   .arg(cssColor(pressedFill));
 
-  const auto makeButton = [this, &buttonStyle](const QString &iconPath, const QString &toolTip,
+  auto *buttonGroup = new QWidget(this);
+  auto *buttonGroupLayout = new QHBoxLayout(buttonGroup);
+  buttonGroupLayout->setContentsMargins(0, 0, 0, 0);
+  buttonGroupLayout->setSpacing(barLayout->spacing());
+
+  const auto makeButton = [&buttonStyle, buttonGroup](const QString &iconPath, const QString &toolTip,
                                                const QColor &color) {
-    auto *button = new QToolButton(this);
+    auto *button = new QToolButton(buttonGroup);
     button->setAutoRaise(true);
     button->setToolButtonStyle(Qt::ToolButtonIconOnly);
     button->setFocusPolicy(Qt::NoFocus);
@@ -85,12 +90,15 @@ void IconBar::setupControls() {
                        "Clicking the button again will pause playback or play a different collection "
                        "if you have changed the selection.");
   connect(m_play, &QToolButton::pressed, this, &IconBar::playToggle);
-  barLayout->addWidget(m_play);
+  buttonGroupLayout->addWidget(m_play);
 
   m_stop = makeButton(QStringLiteral(":/icons/stop.svg"), QStringLiteral("Stop playback (Esc)"), stopColor);
   m_stop->setEnabled(false);
   connect(m_stop, &QToolButton::pressed, this, &IconBar::stopPressed);
-  barLayout->addWidget(m_stop);
+  buttonGroupLayout->addWidget(m_stop);
+
+  buttonGroup->setFixedWidth(buttonGroup->sizeHint().width());
+  barLayout->addWidget(buttonGroup);
 
   m_slider = new SeekBar();
   /* Needed to make sure the slider is properly rendered */
