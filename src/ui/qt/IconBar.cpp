@@ -7,6 +7,7 @@
 #include "IconBar.h"
 
 #include <QLayout>
+#include <QHBoxLayout>
 #include <QToolButton>
 #include <QWhatsThis>
 
@@ -36,12 +37,14 @@ QIcon gradientTransportIcon(const QString &iconPath, QColor baseColor) {
 }
 
 IconBar::IconBar(QWidget *parent) : QWidget(parent) {
-  setLayout(new QHBoxLayout());
-  layout()->setContentsMargins(0, 0, 0, 0);
+  auto *barLayout = new QHBoxLayout();
+  barLayout->setContentsMargins(0, 0, 0, 0);
+  setLayout(barLayout);
   setupControls();
 }
 
 void IconBar::setupControls() {
+  auto *barLayout = static_cast<QHBoxLayout *>(layout());
   const bool darkPalette = isDarkPalette(palette());
   const QColor playColor = darkPalette ? kDarkPlayColor : kLightPlayColor;
   const QColor stopColor = darkPalette ? kDarkStopColor : kLightStopColor;
@@ -81,19 +84,20 @@ void IconBar::setupControls() {
                        "Clicking the button again will pause playback or play a different collection "
                        "if you have changed the selection.");
   connect(m_play, &QToolButton::pressed, this, &IconBar::playToggle);
-  layout()->addWidget(m_play);
+  barLayout->addWidget(m_play);
 
   m_stop = makeButton(QStringLiteral(":/icons/stop.svg"), QStringLiteral("Stop playback (Esc)"), stopColor);
   m_stop->setEnabled(false);
   connect(m_stop, &QToolButton::pressed, this, &IconBar::stopPressed);
-  layout()->addWidget(m_stop);
+  barLayout->addWidget(m_stop);
 
   m_slider = new SeekBar();
   /* Needed to make sure the slider is properly rendered */
   m_slider->setRange(0, 1);
   m_slider->setValue(0);
   m_slider->setFixedHeight(kTransportControlHeight);
-  
+  m_slider->setMinimumWidth(0);
+  m_slider->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
   m_slider->setEnabled(false);
   m_slider->setToolTip("Seek");
   connect(m_slider, &SeekBar::sliderMoved, [this](int value) {
@@ -102,7 +106,7 @@ void IconBar::setupControls() {
   connect(m_slider, &SeekBar::sliderReleased, [this]() {
     seekingTo(m_slider->value(), PositionChangeOrigin::SeekBar);
   });
-  layout()->addWidget(m_slider);
+  barLayout->addWidget(m_slider, 1);
 
   connect(NotificationCenter::the(), &NotificationCenter::vgmCollSelected, this,
           [this](VGMColl *coll, QWidget *) {

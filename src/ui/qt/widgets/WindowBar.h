@@ -41,6 +41,7 @@ public:
 protected:
   void changeEvent(QEvent *event) override;
   bool eventFilter(QObject *watched, QEvent *event) override;
+  void resizeEvent(QResizeEvent *event) override;
   void showEvent(QShowEvent *event) override;
 
 private:
@@ -50,6 +51,7 @@ private:
   QToolButton *createWindowButton(const QString& toolTip);
   void refreshLeadingToggleButtonIcons();
   void syncWindowButtons();
+  void updateResponsiveLayout();
 
   struct LeadingToggleButton {
     QToolButton *button{};
@@ -61,6 +63,8 @@ private:
   QWidget *m_menuBarWidget{};
   QWidget *m_centerPlaceholder{};
   QWidget *m_centerWidget{};
+  QWidget *m_leftCenterSpacer{};
+  QWidget *m_rightCenterSpacer{};
   QWidget *m_leadingControls{};
   QToolButton *m_windowIconButton{};
   QWidget *m_rightControls{};
