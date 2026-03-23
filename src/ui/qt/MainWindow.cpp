@@ -142,31 +142,25 @@ MainWindow::MainWindow() : QMainWindow(nullptr) {
   L_INFO(infostring);
 }
 
-void MainWindow::scheduleSaveDockState() {
-  // Defer until the current dock/layout change finishes so we capture the settled user layout.
-  QTimer::singleShot(0, this, [this]() {
-    applyCollViewHeightConstraint();
-    if (QLayout *mainLayout = layout()) {
-      mainLayout->activate();
-    }
-    // Preserve only user-driven layout changes; window-driven dock shrink should not become the new baseline.
-    m_preferredDockState = saveState();
-  });
+void MainWindow::activateMainLayout() {
+  if (QLayout *mainLayout = layout()) {
+    mainLayout->activate();
+  }
 }
 
-void MainWindow::scheduleCaptureCollViewHeight() {
-  QTimer::singleShot(0, this, [this]() {
-    if (QLayout *mainLayout = layout()) {
-      mainLayout->activate();
-    }
-    if (m_coll_view_dock && m_coll_view_dock->isVisible() && !m_coll_view_dock->isFloating() &&
-        dockWidgetArea(m_coll_view_dock) == Qt::LeftDockWidgetArea && m_coll_view_dock->height() > 0) {
-      m_collViewPreferredHeight = m_coll_view_dock->height();
+void MainWindow::scheduleDockStateUpdate(bool captureCollViewHeight) {
+  // Defer until the current dock/layout change finishes so we capture the settled user layout.
+  QTimer::singleShot(0, this, [this, captureCollViewHeight]() {
+    if (captureCollViewHeight) {
+      activateMainLayout();
+      if (m_coll_view_dock && m_coll_view_dock->isVisible() && !m_coll_view_dock->isFloating() &&
+          dockWidgetArea(m_coll_view_dock) == Qt::LeftDockWidgetArea && m_coll_view_dock->height() > 0) {
+        m_collViewPreferredHeight = m_coll_view_dock->height();
+      }
     }
     applyCollViewHeightConstraint();
-    if (QLayout *mainLayout = layout()) {
-      mainLayout->activate();
-    }
+    activateMainLayout();
+    // Preserve only user-driven layout changes; window-driven dock shrink should not become the new baseline.
     m_preferredDockState = saveState();
   });
 }
@@ -259,10 +253,10 @@ void MainWindow::createElements() {
     if (!dock) {
       continue;
     }
-    connect(dock, &QDockWidget::visibilityChanged, this, [this](bool) { scheduleSaveDockState(); });
+    connect(dock, &QDockWidget::visibilityChanged, this, [this](bool) { scheduleDockStateUpdate(false); });
     connect(dock, &QDockWidget::dockLocationChanged, this,
-            [this](Qt::DockWidgetArea) { scheduleSaveDockState(); });
-    connect(dock, &QDockWidget::topLevelChanged, this, [this](bool) { scheduleSaveDockState(); });
+            [this](Qt::DockWidgetArea) { scheduleDockStateUpdate(false); });
+    connect(dock, &QDockWidget::topLevelChanged, this, [this](bool) { scheduleDockStateUpdate(false); });
   }
 
   QList<QDockWidget *> docks = findChildren<QDockWidget *>(QString(), Qt::FindDirectChildrenOnly);
@@ -347,9 +341,7 @@ void MainWindow::showEvent(QShowEvent* event) {
   resizeDocks({m_vgmfile_dock, m_coll_view_dock},
               {totalHeight - collectionDockHeight, collectionDockHeight},
               Qt::Vertical);
-  if (QLayout *mainLayout = layout()) {
-    mainLayout->activate();
-  }
+  activateMainLayout();
   const int realizedCollectionDockHeight =
       (m_coll_view_dock && m_coll_view_dock->height() > 0) ? m_coll_view_dock->height()
                                                             : collectionDockHeight;
@@ -399,7 +391,7 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
     auto *mouseEvent = static_cast<QMouseEvent *>(event);
     if (mouseEvent->button() == Qt::LeftButton && m_dockSeparatorDragActive) {
       m_dockSeparatorDragActive = false;
-      scheduleCaptureCollViewHeight();
+      scheduleDockStateUpdate(true);
     }
   }
 
@@ -557,9 +549,7 @@ void MainWindow::resizeEvent(QResizeEvent *event) {
       restoreState(m_preferredDockState);
     }
     applyCollViewHeightConstraint();
-    if (QLayout *mainLayout = layout()) {
-      mainLayout->activate();
-    }
+    activateMainLayout();
   });
 }
 

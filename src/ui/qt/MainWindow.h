@@ -54,8 +54,8 @@ private:
   void configureWindowAgent();
   void createStatusBar();
   void routeSignals();
-  void scheduleSaveDockState();
-  void scheduleCaptureCollViewHeight();
+  void activateMainLayout();
+  void scheduleDockStateUpdate(bool captureCollViewHeight);
   void applyCollViewHeightConstraint();
   void updateDragOverlayAppearance();
   void updateDragOverlayGeometry();
