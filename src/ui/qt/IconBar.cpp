@@ -18,7 +18,7 @@
 namespace {
 constexpr int kTransportControlHeight = 32;
 constexpr int kTransportButtonSize = 32;
-constexpr int kTransportIconSize = 29;
+constexpr int kTransportIconSize = 28;
 constexpr int kInactiveTransportIconAlpha = 120;
 const QColor kDarkPlayColor(0x2f, 0xbf, 0x71);
 const QColor kLightPlayColor(0x24, 0x96, 0x59);
@@ -28,7 +28,7 @@ const QColor kLightStopColor(0xb8, 0x4f, 0x4f);
 QIcon gradientTransportIcon(const QString &iconPath, QColor baseColor) {
   const int alpha = baseColor.alpha();
   QColor startColor = blendColors(baseColor, QColor(Qt::white), 0.8);
-  QColor endColor = blendColors(baseColor, QColor(Qt::black), 0.8);
+  QColor endColor = blendColors(baseColor, QColor(Qt::black), 0.7);
   startColor.setAlpha(alpha);
   endColor.setAlpha(alpha);
   return gradientStencilSvgIcon(iconPath, startColor, endColor);
