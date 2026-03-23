@@ -1,6 +1,5 @@
 #pragma once
 
-#include <algorithm>
 #include <cmath>
 #include <QIconEngine>
 #include <QLinearGradient>
@@ -17,14 +16,11 @@ public:
       : m_path(std::move(svgPath)), m_startColor(std::move(tint)) {
   }
 
-  TintableSvgIconEngine(QString svgPath, QColor startColor, QColor endColor, int angleDegrees = 90,
-                        qreal startPos = 0.0, qreal endPos = 1.0)
+  TintableSvgIconEngine(QString svgPath, QColor startColor, QColor endColor, int angleDegrees = 90)
       : m_path(std::move(svgPath)),
         m_startColor(std::move(startColor)),
         m_endColor(std::move(endColor)),
         m_angleDegrees(angleDegrees),
-        m_startPos(startPos),
-        m_endPos(endPos),
         m_useGradient(true) {
   }
 
@@ -43,8 +39,6 @@ public:
 
 private:
   QLinearGradient gradientForRect(const QRectF &rect) const {
-    const qreal clampedStartPos = std::clamp(std::min(m_startPos, m_endPos), 0.0, 1.0);
-    const qreal clampedEndPos = std::clamp(std::max(m_startPos, m_endPos), 0.0, 1.0);
     const qreal radians = qDegreesToRadians(qreal(m_angleDegrees));
     const QPointF direction(std::cos(radians), std::sin(radians));
     const QPointF center = rect.center();
@@ -53,8 +47,6 @@ private:
     QLinearGradient gradient(center - direction * halfLength, center + direction * halfLength);
     gradient.setSpread(QGradient::PadSpread);
     gradient.setColorAt(0.0, m_startColor);
-    gradient.setColorAt(clampedStartPos, m_startColor);
-    gradient.setColorAt(clampedEndPos, m_endColor);
     gradient.setColorAt(1.0, m_endColor);
     return gradient;
   }
@@ -89,8 +81,6 @@ private:
   QColor                 m_startColor;
   QColor                 m_endColor;
   int                    m_angleDegrees = 90;
-  qreal                  m_startPos = 0.0;
-  qreal                  m_endPos = 1.0;
   bool                   m_useGradient = false;
   mutable QHash<quint64, QPixmap> m_cache;
 };

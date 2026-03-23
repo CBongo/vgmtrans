@@ -48,8 +48,8 @@ QIcon stencilSvgIcon(const QString &iconPath, const QColor &color) {
 }
 
 QIcon gradientStencilSvgIcon(const QString &iconPath, const QColor &startColor, const QColor &endColor,
-                             int angleDegrees, qreal startPos, qreal endPos) {
-  return QIcon(new TintableSvgIconEngine(iconPath, startColor, endColor, angleDegrees, startPos, endPos));
+                             int angleDegrees) {
+  return QIcon(new TintableSvgIconEngine(iconPath, startColor, endColor, angleDegrees));
 }
 
 QString cssColor(const QColor &color) {
