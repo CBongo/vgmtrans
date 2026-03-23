@@ -55,6 +55,8 @@ private:
   void createStatusBar();
   void routeSignals();
   void scheduleSaveDockState();
+  void scheduleCaptureCollViewHeight();
+  void applyCollViewHeightConstraint();
   void updateDragOverlayAppearance();
   void updateDragOverlayGeometry();
 
@@ -77,6 +79,7 @@ private:
   QWidget *m_dragOverlay{};
   QWK::WidgetWindowAgent *m_windowAgent{};
   QByteArray m_preferredDockState{};
+  int m_collViewPreferredHeight{};
   bool m_dockSeparatorDragActive{};
   int m_dockResizeSyncGeneration{};
 };
