@@ -7,7 +7,6 @@
 #include "WindowBar.h"
 
 #include <cmath>
-#include <limits>
 #include <QAction>
 #include <QEvent>
 #include <QHBoxLayout>
@@ -34,7 +33,6 @@ constexpr int kWindowsWindowIconSize = 18;
 constexpr int kWindowsWindowGlyphSize = 12;
 constexpr qreal kIconBarFreeWidthFraction = 0.55;
 constexpr qreal kFreeWidthThreshold = 0.3;
-constexpr int kFreeWidthToggleMargin = 24;
 
 QIcon multiStateStencilIcon(const QString &iconPath, const QColor &normalColor,
                             const QColor &activeColor, const QColor &disabledColor,
@@ -370,39 +368,36 @@ void WindowBar::updateResponsiveLayout() {
     return;
   }
 
-  m_layout->activate();
-
-  const auto occupiedWidth = [](QWidget *widget) {
-    return widget && !widget->isHidden() ? (widget->width() > 0 ? widget->width() : widget->sizeHint().width()) : 0;
+  const auto visibleWidth = [](QWidget *widget) {
+    return widget && !widget->isHidden() ? widget->sizeHint().width() : 0;
   };
 
   const QMargins margins = m_layout->contentsMargins();
   const int centerMinimumWidth = std::max(0, m_centerWidget->minimumSizeHint().width());
   const int leadingWidth = m_leadingToggleButtons.isEmpty() ? 0 : m_leadingControls->sizeHint().width();
 #if defined(Q_OS_MACOS) || defined(Q_OS_MAC)
-  const int fixedWidth = margins.left() + margins.right() + occupiedWidth(m_systemButtonArea);
+  const int baseFixedWidth = margins.left() + margins.right() + visibleWidth(m_systemButtonArea);
 #else
-  const int fixedWidth =
-      margins.left() + margins.right() + occupiedWidth(m_windowIconButton) + occupiedWidth(m_menuBarWidget) +
-      occupiedWidth(m_rightControls) + 8;
+  const int baseFixedWidth =
+      margins.left() + margins.right() + visibleWidth(m_windowIconButton) + visibleWidth(m_menuBarWidget) +
+      visibleWidth(m_rightControls) + 8;
 #endif
-  const qreal remainingFreeWidthFraction = 1.0 - kIconBarFreeWidthFraction;
-  const qreal denominator = remainingFreeWidthFraction - kFreeWidthThreshold;
-  const int cutoffWidth =
-      denominator > 0.0
-          ? static_cast<int>(std::ceil((remainingFreeWidthFraction * (fixedWidth + leadingWidth)) / denominator))
-          : std::numeric_limits<int>::max();
-  const bool leadingControlsVisible = !m_leadingControls->isHidden();
+  const int availableWidth = std::max(0, width() - baseFixedWidth);
+  const int availableWidthWithLeading = std::max(0, availableWidth - leadingWidth);
+  const int desiredCenterWidthWithLeading =
+      static_cast<int>(std::lround(availableWidthWithLeading * kIconBarFreeWidthFraction));
+  const int unusedFreeWidthWithLeading = std::max(0, availableWidthWithLeading - desiredCenterWidthWithLeading);
   const bool showLeadingControls =
       leadingWidth > 0 &&
-      width() >= cutoffWidth + (leadingControlsVisible ? -kFreeWidthToggleMargin : kFreeWidthToggleMargin);
+      (static_cast<qreal>(unusedFreeWidthWithLeading) / std::max(1, availableWidth)) >= kFreeWidthThreshold;
 
   m_leadingControls->setVisible(showLeadingControls);
   m_rightCenterSpacer->setVisible(showLeadingControls);
 
-  const int freeWidth = std::max(0, width() - fixedWidth - (showLeadingControls ? leadingWidth : 0));
-  const int desiredCenterWidth = static_cast<int>(std::lround(freeWidth * kIconBarFreeWidthFraction));
-  m_centerWidget->setFixedWidth(std::min(freeWidth, std::max(centerMinimumWidth, desiredCenterWidth)));
+  const int availableCenterWidth = std::max(0, availableWidth - (showLeadingControls ? leadingWidth : 0));
+  const int desiredCenterWidth = static_cast<int>(std::lround(availableCenterWidth * kIconBarFreeWidthFraction));
+  m_centerWidget->setFixedWidth(
+      std::min(availableCenterWidth, std::max(centerMinimumWidth, desiredCenterWidth)));
   m_layout->activate();
 }
 
