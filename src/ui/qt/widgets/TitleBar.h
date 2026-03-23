@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include <QMouseEvent>
 #include <QWidget>
 #include "Metrics.h"
 
@@ -18,7 +17,6 @@ public:
     NoButtons = 0x0,
     HideButton = 0x1,
     NewButton = 0x2,
-    CollapseButton = 0x4,
   };
   Q_DECLARE_FLAGS(Buttons, Button)
 
@@ -32,19 +30,9 @@ public:
     return QSize(0, Size::VTab);
   }
 
-protected:
-  void mouseDoubleClickEvent(QMouseEvent *event) override;
-
 signals:
   void hideRequested();
   void addRequested();
-  void collapseToggled(bool collapsed);
-
-private:
-  void updateCollapseButton();
-
-  class QToolButton *m_collapseButton{};
-  bool m_collapsed{};
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(TitleBar::Buttons)

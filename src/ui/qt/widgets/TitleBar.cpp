@@ -42,40 +42,9 @@ TitleBar::TitleBar(const QString& title, Buttons buttons, QWidget *parent) : QWi
     connect(newButton, &QToolButton::clicked, this, &TitleBar::addRequested);
   }
 
-  if (buttons.testFlag(CollapseButton)) {
-    m_collapseButton = makeButton(QString());
-    m_collapseButton->setCheckable(true);
-    updateCollapseButton();
-    connect(m_collapseButton, &QToolButton::toggled, this, [this](bool collapsed) {
-      m_collapsed = collapsed;
-      updateCollapseButton();
-      emit collapseToggled(collapsed);
-    });
-  }
-
   if (buttons.testFlag(HideButton)) {
     auto *hideButton = makeButton("Hide dock");
     hideButton->setIcon(style()->standardIcon(QStyle::SP_TitleBarCloseButton));
     connect(hideButton, &QToolButton::clicked, this, &TitleBar::hideRequested);
   }
-}
-
-void TitleBar::updateCollapseButton() {
-  if (!m_collapseButton) {
-    return;
-  }
-
-  m_collapseButton->setIcon(style()->standardIcon(
-      m_collapsed ? QStyle::SP_TitleBarUnshadeButton : QStyle::SP_TitleBarShadeButton));
-  m_collapseButton->setToolTip(m_collapsed ? "Expand dock" : "Collapse dock");
-}
-
-void TitleBar::mouseDoubleClickEvent(QMouseEvent *event) {
-  if (event->button() == Qt::LeftButton && m_collapseButton) {
-    m_collapseButton->toggle();
-    event->accept();
-    return;
-  }
-
-  QWidget::mouseDoubleClickEvent(event);
 }
