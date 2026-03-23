@@ -8,7 +8,7 @@
 
 #include <QWidget>
 
-class QPushButton;
+class QToolButton;
 class SeekBar;
 enum class PositionChangeOrigin;
 
@@ -31,10 +31,8 @@ private slots:
 private:
   void setupControls();
 
-  QPushButton *m_play{};
-  QPushButton *m_stop{};
+  QToolButton *m_play{};
+  QToolButton *m_stop{};
   SeekBar *m_slider{};
   bool m_skipNextPlaybackSliderUpdate = false;
-  inline static QIcon s_playicon;
-  inline static QIcon s_pauseicon;
 };

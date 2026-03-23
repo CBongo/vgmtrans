@@ -94,7 +94,7 @@ WindowBar::WindowBar(QWidget *parent) : QWidget(parent) {
   m_systemButtonArea->setFixedSize(kMacSystemButtonAreaWidth, kTitleBarHeight - 4);
   m_layout->addWidget(m_systemButtonArea, 0, Qt::AlignBottom);
   m_layout->addStretch(1);
-  m_layout->addWidget(m_centerWidget);
+  m_layout->addWidget(m_centerWidget, 0, Qt::AlignVCenter);
   m_layout->addStretch(1);
   m_layout->addWidget(m_leadingControls, 0, Qt::AlignVCenter);
 #else
