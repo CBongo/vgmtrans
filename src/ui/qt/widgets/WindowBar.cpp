@@ -6,6 +6,8 @@
 
 #include "WindowBar.h"
 
+#include <cmath>
+#include <limits>
 #include <QAction>
 #include <QEvent>
 #include <QHBoxLayout>
@@ -31,7 +33,8 @@ constexpr int kWindowsWindowButtonWidth = 46;
 constexpr int kWindowsWindowIconSize = 18;
 constexpr int kWindowsWindowGlyphSize = 12;
 constexpr qreal kIconBarFreeWidthFraction = 0.6;
-constexpr qreal kLeadingControlsFreeWidthThreshold = 0.25;
+constexpr qreal kFreeWidthThreshold = 0.25;
+constexpr int kFreeWidthToggleMargin = 24;
 
 QIcon multiStateStencilIcon(const QString &iconPath, const QColor &normalColor,
                             const QColor &activeColor, const QColor &disabledColor,
@@ -381,13 +384,16 @@ void WindowBar::updateResponsiveLayout() {
       margins.left() + margins.right() + visibleWidth(m_windowIconButton) + visibleWidth(m_menuBarWidget) +
       visibleWidth(m_rightControls) + 8;
 #endif
-  const int freeWidthWithLeading = std::max(0, width() - fixedWidth - leadingWidth);
-  const int desiredCenterWidthWithLeading =
-      static_cast<int>(std::lround(freeWidthWithLeading * kIconBarFreeWidthFraction));
-  const int unusedFreeWidthWithLeading = std::max(0, freeWidthWithLeading - desiredCenterWidthWithLeading);
+  const qreal remainingFreeWidthFraction = 1.0 - kIconBarFreeWidthFraction;
+  const qreal denominator = remainingFreeWidthFraction - kFreeWidthThreshold;
+  const int cutoffWidth =
+      denominator > 0.0
+          ? static_cast<int>(std::ceil((remainingFreeWidthFraction * (fixedWidth + leadingWidth)) / denominator))
+          : std::numeric_limits<int>::max();
+  const bool leadingControlsVisible = !m_leadingControls->isHidden();
   const bool showLeadingControls =
       leadingWidth > 0 &&
-      (static_cast<qreal>(unusedFreeWidthWithLeading) / std::max(1, width())) >= kLeadingControlsFreeWidthThreshold;
+      width() >= cutoffWidth + (leadingControlsVisible ? -kFreeWidthToggleMargin : kFreeWidthToggleMargin);
 
   m_leadingControls->setVisible(showLeadingControls);
   m_rightCenterSpacer->setVisible(showLeadingControls);
