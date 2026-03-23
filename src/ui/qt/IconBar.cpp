@@ -20,7 +20,7 @@ namespace {
 constexpr int kTransportControlHeight = 32;
 constexpr int kTransportButtonSize = 32;
 constexpr int kTransportIconSize = 28;
-constexpr int kSeekBarVisibleWidthThreshold = 100;
+constexpr int kSeekBarVisibleWidthThreshold = 125;
 constexpr int kInactiveTransportIconAlpha = 120;
 const QColor kDarkPlayColor(0x2f, 0xbf, 0x71);
 const QColor kLightPlayColor(0x24, 0x96, 0x59);
