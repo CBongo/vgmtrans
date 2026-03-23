@@ -5,6 +5,8 @@
  */
 
 #include "TitleBar.h"
+#include <QApplication>
+#include <QDockWidget>
 #include <QEvent>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -30,16 +32,23 @@ TitleBar::TitleBar(const QString& title, Buttons buttons, QWidget *parent) : QWi
   titleLayout->addWidget(titleLabel);
   titleLayout->addStretch(1);
 
+  m_buttonContainer = new QWidget(this);
+  auto *buttonLayout = new QHBoxLayout(m_buttonContainer);
+  buttonLayout->setContentsMargins(0, 0, 0, 0);
+  buttonLayout->setSpacing(4);
+  titleLayout->addWidget(m_buttonContainer);
+  m_buttonContainer->hide();
+
   QFont labelFont("Arial", -1, QFont::Bold, true);
   titleLabel->setFont(labelFont);
 
-  const auto makeButton = [this, titleLayout](const QString& toolTip) {
+  const auto makeButton = [this, buttonLayout](const QString& toolTip) {
     auto *button = new QToolButton(this);
     button->setAutoRaise(true);
     button->setFocusPolicy(Qt::NoFocus);
     button->setToolTip(toolTip);
     button->setCursor(Qt::ArrowCursor);
-    titleLayout->addWidget(button);
+    buttonLayout->addWidget(button);
     return button;
   };
 
@@ -57,6 +66,16 @@ TitleBar::TitleBar(const QString& title, Buttons buttons, QWidget *parent) : QWi
     updateHideButtonStyle();
     connect(m_hideButton, &QToolButton::clicked, this, &TitleBar::hideRequested);
   }
+
+  installEventFilter(this);
+  if (auto *dock = qobject_cast<QDockWidget *>(parentWidget())) {
+    dock->installEventFilter(this);
+    if (QWidget *dockWidget = dock->widget()) {
+      dockWidget->installEventFilter(this);
+    }
+    connect(qApp, &QApplication::focusChanged, this, [this](QWidget *, QWidget *) { updateButtonsVisible(); });
+  }
+  updateButtonsVisible();
 }
 
 void TitleBar::changeEvent(QEvent *event) {
@@ -67,6 +86,16 @@ void TitleBar::changeEvent(QEvent *event) {
   }
 }
 
+bool TitleBar::eventFilter(QObject *watched, QEvent *event) {
+  auto *dock = qobject_cast<QDockWidget *>(parentWidget());
+  if ((watched == this || watched == dock || (dock && watched == dock->widget())) &&
+      (event->type() == QEvent::Enter || event->type() == QEvent::Leave || event->type() == QEvent::Show ||
+       event->type() == QEvent::Hide)) {
+    updateButtonsVisible();
+  }
+  return QWidget::eventFilter(watched, event);
+}
+
 void TitleBar::updateHideButtonStyle() {
   if (!m_hideButton) {
     return;
@@ -74,4 +103,16 @@ void TitleBar::updateHideButtonStyle() {
 
   m_hideButton->setStyleSheet(toolBarButtonStyle(palette()));
   m_hideButton->setIcon(stencilSvgIcon(QStringLiteral(":/icons/minus.svg"), toolBarButtonIconColor(palette())));
+}
+
+void TitleBar::updateButtonsVisible() {
+  if (!m_buttonContainer) {
+    return;
+  }
+
+  auto *dock = qobject_cast<QDockWidget *>(parentWidget());
+  QWidget *focus = QApplication::focusWidget();
+  const bool focused = dock && focus && (focus == dock || dock->isAncestorOf(focus));
+  const bool hovered = underMouse() || (dock && dock->underMouse()) || (dock && dock->widget() && dock->widget()->underMouse());
+  m_buttonContainer->setVisible(hovered || focused);
 }

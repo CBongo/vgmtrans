@@ -32,6 +32,7 @@ public:
 
 protected:
   void changeEvent(QEvent *event) override;
+  bool eventFilter(QObject *watched, QEvent *event) override;
 
 signals:
   void hideRequested();
@@ -39,7 +40,9 @@ signals:
 
 private:
   void updateHideButtonStyle();
+  void updateButtonsVisible();
 
+  QWidget *m_buttonContainer{};
   class QToolButton *m_hideButton{};
 };
 
