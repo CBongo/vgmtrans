@@ -98,7 +98,9 @@ void IconBar::setupControls() {
   m_slider->setValue(0);
   m_slider->setFixedHeight(kTransportControlHeight);
   m_slider->setMinimumWidth(0);
-  m_slider->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+  QSizePolicy sliderPolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+  sliderPolicy.setRetainSizeWhenHidden(true);
+  m_slider->setSizePolicy(sliderPolicy);
   m_slider->setEnabled(false);
   m_slider->setToolTip("Seek");
   connect(m_slider, &SeekBar::sliderMoved, [this](int value) {
