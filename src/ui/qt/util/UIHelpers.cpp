@@ -47,6 +47,11 @@ QIcon stencilSvgIcon(const QString &iconPath, const QColor &color) {
   return QIcon(new TintableSvgIconEngine(iconPath, color));
 }
 
+QIcon gradientStencilSvgIcon(const QString &iconPath, const QColor &startColor, const QColor &endColor,
+                             int angleDegrees, qreal startPos, qreal endPos) {
+  return QIcon(new TintableSvgIconEngine(iconPath, startColor, endColor, angleDegrees, startPos, endPos));
+}
+
 QString cssColor(const QColor &color) {
   return QStringLiteral("rgba(%1, %2, %3, %4)")
       .arg(color.red())
