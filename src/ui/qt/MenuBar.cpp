@@ -105,6 +105,11 @@ void MenuBar::appendViewMenu(const QList<QDockWidget *> &dockWidgets) {
 
   m_viewMenu->addSeparator();
 
+  menu_reset_dock_layout = m_viewMenu->addAction(tr("Reset Dock Layout"));
+  connect(menu_reset_dock_layout, &QAction::triggered, this, &MenuBar::resetDockLayout);
+
+  m_viewMenu->addSeparator();
+
   menu_increase_hex_font = m_viewMenu->addAction(tr("Increase Font Size in Hex View"));
   menu_increase_hex_font->setShortcut(QKeySequence::ZoomIn);
   menu_increase_hex_font->setShortcutContext(Qt::WidgetShortcut);

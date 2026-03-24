@@ -26,6 +26,7 @@ class QDragEnterEvent;
 class QDragMoveEvent;
 class QDragLeaveEvent;
 class QDropEvent;
+class QCloseEvent;
 class QResizeEvent;
 namespace QWK {
 class WidgetWindowAgent;
@@ -46,6 +47,7 @@ protected:
   void dragMoveEvent(QDragMoveEvent *event) override;
   void dragLeaveEvent(QDragLeaveEvent *event) override;
   void dropEvent(QDropEvent *event) override;
+  void closeEvent(QCloseEvent *event) override;
   void resizeEvent(QResizeEvent *event) override;
   bool eventFilter(QObject* obj, QEvent* event) override;
 
@@ -55,8 +57,12 @@ private:
   void createStatusBar();
   void routeSignals();
   void activateMainLayout();
+  void captureFixedLeftDockHeights(bool onlyIfUnset);
   void scheduleDockStateUpdate(bool captureFixedDockHeights);
   void applyLeftDockHeightConstraints();
+  void applyDefaultDockLayout();
+  void resetDockLayout();
+  void saveLayoutSettings() const;
   void updateDragOverlayAppearance();
   void updateDragOverlayGeometry();
 
@@ -78,6 +84,7 @@ private:
   WindowBar *m_windowBar{};
   QWidget *m_dragOverlay{};
   QWK::WidgetWindowAgent *m_windowAgent{};
+  QByteArray m_defaultDockState{};
   QByteArray m_preferredDockState{};
   int m_rawFilePreferredHeight{};
   int m_collViewPreferredHeight{};

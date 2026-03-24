@@ -25,6 +25,7 @@
 #include <QResizeEvent>
 #include <QAbstractButton>
 #include <QApplication>
+#include <QCloseEvent>
 #include <QDockWidget>
 #include <QKeyEvent>
 #include <QMouseEvent>
@@ -56,6 +57,7 @@
 
 namespace {
 constexpr auto MIME_PORTAL_FILETRANSFER = "application/vnd.portal.filetransfer";
+constexpr int kDockLayoutStateVersion = 1;
 
 bool isDockSeparatorCursor(Qt::CursorShape shape) {
   return shape == Qt::SplitHCursor || shape == Qt::SplitVCursor;
@@ -132,6 +134,11 @@ MainWindow::MainWindow() : QMainWindow(nullptr) {
   updateDragOverlayAppearance();
   updateDragOverlayGeometry();
 
+  if (const QByteArray geometry = Settings::the()->mainWindow.windowGeometry(); !geometry.isEmpty()) {
+    restoreGeometry(geometry);
+  }
+  m_preferredDockState = Settings::the()->mainWindow.dockState();
+
   auto infostring = QString("Running %1 (%4, %5), BASS %2, Qt %3")
                         .arg(VGMTRANS_VERSION,
                              QString::number(BASS_GetVersion(), 16),
@@ -148,32 +155,34 @@ void MainWindow::activateMainLayout() {
   }
 }
 
+void MainWindow::captureFixedLeftDockHeights(bool onlyIfUnset) {
+  const auto updatePreferredHeight = [this, onlyIfUnset](QDockWidget *dock, int &preferredHeight) {
+    if (!dock || (onlyIfUnset && preferredHeight > 0)) {
+      return;
+    }
+    if (dock->isVisible() && !dock->isFloating() && dockWidgetArea(dock) == Qt::LeftDockWidgetArea &&
+        dock->height() > 0) {
+      preferredHeight = dock->height();
+    }
+  };
+
+  updatePreferredHeight(m_rawfile_dock, m_rawFilePreferredHeight);
+  updatePreferredHeight(m_coll_view_dock, m_collViewPreferredHeight);
+}
+
 void MainWindow::scheduleDockStateUpdate(bool captureFixedDockHeights) {
   // Defer until the current dock/layout change finishes so we capture the settled user layout.
   QTimer::singleShot(0, this, [this, captureFixedDockHeights]() {
-    const auto updatePreferredHeight = [this](QDockWidget *dock, int &preferredHeight) {
-      if (dock && dock->isVisible() && !dock->isFloating() && dockWidgetArea(dock) == Qt::LeftDockWidgetArea &&
-          dock->height() > 0) {
-        preferredHeight = dock->height();
-      }
-    };
-
     activateMainLayout();
     if (captureFixedDockHeights) {
-      updatePreferredHeight(m_rawfile_dock, m_rawFilePreferredHeight);
-      updatePreferredHeight(m_coll_view_dock, m_collViewPreferredHeight);
+      captureFixedLeftDockHeights(false);
     } else {
-      if (m_rawFilePreferredHeight <= 0) {
-        updatePreferredHeight(m_rawfile_dock, m_rawFilePreferredHeight);
-      }
-      if (m_collViewPreferredHeight <= 0) {
-        updatePreferredHeight(m_coll_view_dock, m_collViewPreferredHeight);
-      }
+      captureFixedLeftDockHeights(true);
     }
     applyLeftDockHeightConstraints();
     activateMainLayout();
     // Preserve only user-driven layout changes; window-driven dock shrink should not become the new baseline.
-    m_preferredDockState = saveState();
+    m_preferredDockState = saveState(kDockLayoutStateVersion);
   });
 }
 
@@ -199,6 +208,66 @@ void MainWindow::applyLeftDockHeightConstraints() {
   applyDockConstraint(m_coll_view_dock, m_collViewPreferredHeight);
 }
 
+void MainWindow::applyDefaultDockLayout() {
+  const int totalHeight = height();
+  const int collectionDockHeight = totalHeight / 5;
+
+  m_vgmfile_dock->show();
+  m_coll_dock->show();
+  m_coll_view_dock->show();
+  m_logger->show();
+  m_rawfile_dock->hide();
+
+  resizeDocks({m_vgmfile_dock, m_coll_view_dock},
+              {totalHeight - collectionDockHeight, collectionDockHeight},
+              Qt::Vertical);
+  activateMainLayout();
+
+  const int realizedCollectionDockHeight =
+      (m_coll_view_dock && m_coll_view_dock->height() > 0) ? m_coll_view_dock->height()
+                                                            : collectionDockHeight;
+  resizeDocks({m_coll_dock, m_logger},
+              {realizedCollectionDockHeight, realizedCollectionDockHeight},
+              Qt::Vertical);
+
+  const int bottomDockAreaWidth = m_coll_dock->width() + m_logger->width();
+  resizeDocks({m_coll_dock, m_logger},
+              {bottomDockAreaWidth / 2, bottomDockAreaWidth / 2},
+              Qt::Horizontal);
+  activateMainLayout();
+  m_logger->hide();
+}
+
+void MainWindow::resetDockLayout() {
+  if (m_defaultDockState.isEmpty()) {
+    return;
+  }
+
+  ++m_dockResizeSyncGeneration;
+  m_dockSeparatorDragActive = false;
+  m_rawFilePreferredHeight = 0;
+  m_collViewPreferredHeight = 0;
+
+  if (!restoreState(m_defaultDockState, kDockLayoutStateVersion)) {
+    return;
+  }
+
+  activateMainLayout();
+  m_preferredDockState = m_defaultDockState;
+  captureFixedLeftDockHeights(false);
+  applyLeftDockHeightConstraints();
+  saveLayoutSettings();
+}
+
+void MainWindow::saveLayoutSettings() const {
+  Settings::the()->mainWindow.setWindowGeometry(saveGeometry());
+  if (!m_preferredDockState.isEmpty()) {
+    Settings::the()->mainWindow.setDockState(m_preferredDockState);
+  } else {
+    Settings::the()->mainWindow.clearDockState();
+  }
+}
+
 void MainWindow::createElements() {
   setDocumentMode(true);
   setTabPosition(Qt::BottomDockWidgetArea, QTabWidget::North);
@@ -218,12 +287,14 @@ void MainWindow::createElements() {
   };
 
   m_rawfile_dock = new QDockWidget("Scanned Files");
+  m_rawfile_dock->setObjectName(QStringLiteral("rawFileListDock"));
   m_rawfile_dock->setAllowedAreas(Qt::LeftDockWidgetArea);
   m_rawfile_dock->setWidget(new RawFileListView());
   m_rawfile_dock->setContentsMargins(0, 0, 0, 0);
   installTitleBar(m_rawfile_dock, "Scanned Files", TitleBar::HideButton);
 
   m_vgmfile_dock = new QDockWidget("Detected Files");
+  m_vgmfile_dock->setObjectName(QStringLiteral("vgmFileListDock"));
   m_vgmfile_dock->setAllowedAreas(Qt::LeftDockWidgetArea);
   m_vgmfile_dock->setWidget(new VGMFileListView());
   m_vgmfile_dock->setContentsMargins(0, 0, 0, 0);
@@ -242,12 +313,14 @@ void MainWindow::createElements() {
   setCentralWidget(central_wrapper);
 
   m_coll_dock = new QDockWidget("Collections");
+  m_coll_dock->setObjectName(QStringLiteral("collectionListDock"));
   m_coll_dock->setAllowedAreas(Qt::BottomDockWidgetArea);
   m_coll_dock->setWidget(m_coll_listview);
   m_coll_dock->setContentsMargins(0, 0, 0, 0);
   installTitleBar(m_coll_dock, "Collections", TitleBar::HideButton | TitleBar::NewButton);
 
   m_coll_view_dock = new QDockWidget("Collection Contents");
+  m_coll_view_dock->setObjectName(QStringLiteral("collectionContentDock"));
   m_coll_view_dock->setAllowedAreas(Qt::LeftDockWidgetArea);
   m_coll_view_dock->setWidget(m_coll_view);
   m_coll_view_dock->setContentsMargins(0, 0, 0, 0);
@@ -259,6 +332,7 @@ void MainWindow::createElements() {
   m_vgmfile_dock->setFocus();
 
   m_logger = new Logger();
+  m_logger->setObjectName(QStringLiteral("loggerDock"));
   m_logger->setWindowTitle("Logs");
   m_logger->setAllowedAreas(Qt::BottomDockWidgetArea);
   m_logger->setContentsMargins(0, 0, 0, 0);
@@ -358,32 +432,21 @@ void MainWindow::createStatusBar() {
 void MainWindow::showEvent(QShowEvent* event) {
   QMainWindow::showEvent(event);
 
-  if (m_preferredDockState.isEmpty()) {
-    // Seed the first-run dock layout once, then rely on the saved preferred state afterward.
-    const int totalHeight = height();
-    const int collectionDockHeight = totalHeight / 5;
-    resizeDocks({m_vgmfile_dock, m_coll_view_dock},
-                {totalHeight - collectionDockHeight, collectionDockHeight},
-                Qt::Vertical);
-    activateMainLayout();
-    const int realizedCollectionDockHeight =
-        (m_coll_view_dock && m_coll_view_dock->height() > 0) ? m_coll_view_dock->height()
-                                                              : collectionDockHeight;
-    resizeDocks({m_coll_dock, m_logger},
-                {realizedCollectionDockHeight, realizedCollectionDockHeight},
-                Qt::Vertical);
-    const int bottomDockAreaWidth = m_coll_dock->width() + m_logger->width();
-    resizeDocks({m_coll_dock, m_logger},
-                {bottomDockAreaWidth / 2, bottomDockAreaWidth / 2},
-                Qt::Horizontal);
-    activateMainLayout();
-    // Save the wider logger width as part of the default hidden layout.
-    m_logger->hide();
-    m_preferredDockState = saveState();
-    if (m_rawfile_dock && m_rawfile_dock->isVisible() && m_rawfile_dock->height() > 0) {
-      m_rawFilePreferredHeight = m_rawfile_dock->height();
+  if (m_defaultDockState.isEmpty()) {
+    applyDefaultDockLayout();
+    m_defaultDockState = saveState(kDockLayoutStateVersion);
+
+    if (!m_preferredDockState.isEmpty() &&
+        !restoreState(m_preferredDockState, kDockLayoutStateVersion)) {
+      m_preferredDockState.clear();
     }
-    m_collViewPreferredHeight = realizedCollectionDockHeight;
+
+    if (m_preferredDockState.isEmpty()) {
+      m_preferredDockState = m_defaultDockState;
+    }
+
+    activateMainLayout();
+    captureFixedLeftDockHeights(false);
     applyLeftDockHeightConstraints();
   }
 
@@ -398,6 +461,7 @@ void MainWindow::routeSignals() {
     About about(this);
     about.exec();
   });
+  connect(m_menu_bar, &MenuBar::resetDockLayout, this, &MainWindow::resetDockLayout);
 
   connect(m_playback_controls, &PlaybackControls::playToggle, m_coll_listview,
           &VGMCollListView::handlePlaybackRequest);
@@ -476,6 +540,11 @@ void MainWindow::dropEvent(QDropEvent *event) {
 
   handleDroppedUrls(mimeData->urls());
   event->acceptProposedAction();
+}
+
+void MainWindow::closeEvent(QCloseEvent *event) {
+  saveLayoutSettings();
+  QMainWindow::closeEvent(event);
 }
 
 void MainWindow::showDragOverlay() {
@@ -581,7 +650,7 @@ void MainWindow::resizeEvent(QResizeEvent *event) {
     }
 
     if ((widthExpanded || heightExpanded) && !m_preferredDockState.isEmpty()) {
-      restoreState(m_preferredDockState);
+      restoreState(m_preferredDockState, kDockLayoutStateVersion);
     }
     applyLeftDockHeightConstraints();
     activateMainLayout();
