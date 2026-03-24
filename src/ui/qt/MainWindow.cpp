@@ -197,6 +197,7 @@ void MainWindow::createElements() {
       dialog.exec();
     });
     dock->setTitleBarWidget(titleBar);
+    return titleBar;
   };
 
   m_rawfile_dock = new QDockWidget("Scanned Files");
@@ -244,7 +245,9 @@ void MainWindow::createElements() {
   m_logger->setWindowTitle("Logs");
   m_logger->setAllowedAreas(Qt::BottomDockWidgetArea);
   m_logger->setContentsMargins(0, 0, 0, 0);
-  installTitleBar(m_logger, "Logs", TitleBar::HideButton);
+  if (TitleBar *loggerTitleBar = installTitleBar(m_logger, "Logs", TitleBar::HideButton)) {
+    m_logger->installTitleBarControls(loggerTitleBar);
+  }
   addDockWidget(Qt::BottomDockWidgetArea, m_logger);
   addDockWidget(Qt::BottomDockWidgetArea, m_coll_dock);
   m_logger->hide();

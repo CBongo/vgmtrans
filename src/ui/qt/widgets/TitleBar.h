@@ -9,6 +9,8 @@
 #include <QWidget>
 #include "Metrics.h"
 
+class QToolButton;
+
 class TitleBar : public QWidget {
   Q_OBJECT
 
@@ -22,6 +24,8 @@ public:
 
   explicit TitleBar(const QString& title, Buttons buttons = NoButtons, QWidget *parent = nullptr);
   ~TitleBar() override = default;
+
+  void addLeadingWidget(QWidget *widget);
 
   QSize sizeHint() const override {
     return QSize(200, Size::VTab);
@@ -42,6 +46,8 @@ private:
   void updateButtonStyles();
   void updateButtonsVisible();
 
+  QWidget *m_leadingContainer{};
+  class QHBoxLayout *m_leadingLayout{};
   QWidget *m_buttonContainer{};
   class QGraphicsOpacityEffect *m_buttonOpacity{};
   class QPropertyAnimation *m_buttonFade{};

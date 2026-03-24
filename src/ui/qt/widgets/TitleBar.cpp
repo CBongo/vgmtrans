@@ -26,7 +26,7 @@ constexpr int kTitleBarIconSize = 16;
 TitleBar::TitleBar(const QString& title, Buttons buttons, QWidget *parent) : QWidget(parent) {
   setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
-  QHBoxLayout *titleLayout = new QHBoxLayout(this);
+  auto *titleLayout = new QHBoxLayout(this);
   titleLayout->setContentsMargins(Margin::HCommon, 5, Margin::HCommon, 5);
   titleLayout->setSpacing(4);
   QLabel *titleLabel = new QLabel(title);
@@ -50,6 +50,12 @@ TitleBar::TitleBar(const QString& title, Buttons buttons, QWidget *parent) : QWi
     titleLayout->addWidget(m_newButton);
     connect(m_newButton, &QToolButton::clicked, this, &TitleBar::addRequested);
   }
+
+  m_leadingContainer = new QWidget(this);
+  m_leadingLayout = new QHBoxLayout(m_leadingContainer);
+  m_leadingLayout->setContentsMargins(0, 0, 0, 0);
+  m_leadingLayout->setSpacing(1);
+  titleLayout->addWidget(m_leadingContainer);
   titleLayout->addStretch(1);
 
   m_buttonContainer = new QWidget(this);
@@ -88,6 +94,14 @@ TitleBar::TitleBar(const QString& title, Buttons buttons, QWidget *parent) : QWi
     connect(qApp, &QApplication::focusChanged, this, [this](QWidget *, QWidget *) { updateButtonsVisible(); });
   }
   updateButtonsVisible();
+}
+
+void TitleBar::addLeadingWidget(QWidget *widget) {
+  if (!widget || !m_leadingLayout) {
+    return;
+  }
+  widget->setParent(m_leadingContainer);
+  m_leadingLayout->addWidget(widget);
 }
 
 void TitleBar::changeEvent(QEvent *event) {

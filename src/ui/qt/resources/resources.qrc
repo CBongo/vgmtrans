@@ -46,6 +46,8 @@
   <file>icons/music-box-multiple-outline.svg</file>
   <file>icons/book-open-variant-outline.svg</file>
   <file>icons/package-variant.svg</file>
+  <file>icons/eraser.svg</file>
+  <file>icons/export.svg</file>
   <file>window-bar/minimize.svg</file>
   <file>window-bar/maximize.svg</file>
   <file>window-bar/restore.svg</file>
