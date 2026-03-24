@@ -442,7 +442,13 @@ void MainWindow::createElements() {
             [this](Qt::DockWidgetArea) { scheduleDockStateUpdate(false); });
     connect(dock, &QDockWidget::topLevelChanged, this, [this, dock](bool floating) {
       if (!floating) {
-        QTimer::singleShot(0, this, [this]() { applyDockAreaTargets(true, true); });
+        m_dockSeparatorDragActive = true;
+        applyLeftDockHeightConstraints();
+        QTimer::singleShot(0, this, [this]() {
+          m_dockSeparatorDragActive = false;
+          applyDockAreaTargets(true, true);
+          applyLeftDockHeightConstraints();
+        });
       }
       scheduleDockStateUpdate(false);
     });
