@@ -60,6 +60,7 @@ private:
   void captureFixedLeftDockHeights(bool onlyIfUnset);
   void captureLeftDockAreaWidth();
   void captureBottomDockAreaHeight();
+  void applyDockAreaTargets(bool applyLeftWidth, bool applyBottomHeight);
   void scheduleDockStateUpdate(bool captureFixedDockHeights);
   void applyLeftDockHeightConstraints();
   void applyDefaultDockLayout();

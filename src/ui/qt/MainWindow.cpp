@@ -192,6 +192,36 @@ void MainWindow::captureBottomDockAreaHeight() {
   }
 }
 
+void MainWindow::applyDockAreaTargets(bool applyLeftWidth, bool applyBottomHeight) {
+  bool resized = false;
+
+  if (applyLeftWidth && m_leftDockAreaPreferredWidth > 0) {
+    for (QDockWidget *dock : std::initializer_list<QDockWidget *>{m_rawfile_dock, m_vgmfile_dock, m_coll_view_dock}) {
+      if (!dock || !dock->isVisible() || dock->isFloating() || dockWidgetArea(dock) != Qt::LeftDockWidgetArea) {
+        continue;
+      }
+      resizeDocks({dock}, {m_leftDockAreaPreferredWidth}, Qt::Horizontal);
+      resized = true;
+      break;
+    }
+  }
+
+  if (applyBottomHeight && m_bottomDockAreaPreferredHeight > 0) {
+    for (QDockWidget *dock : std::initializer_list<QDockWidget *>{m_coll_dock, m_logger}) {
+      if (!dock || !dock->isVisible() || dock->isFloating() || dockWidgetArea(dock) != Qt::BottomDockWidgetArea) {
+        continue;
+      }
+      resizeDocks({dock}, {m_bottomDockAreaPreferredHeight}, Qt::Vertical);
+      resized = true;
+      break;
+    }
+  }
+
+  if (resized) {
+    activateMainLayout();
+  }
+}
+
 void MainWindow::scheduleDockStateUpdate(bool captureFixedDockHeights) {
   // Defer until the current dock/layout change finishes so we capture the settled user layout.
   QTimer::singleShot(0, this, [this, captureFixedDockHeights]() {
@@ -411,14 +441,8 @@ void MainWindow::createElements() {
     connect(dock, &QDockWidget::dockLocationChanged, this,
             [this](Qt::DockWidgetArea) { scheduleDockStateUpdate(false); });
     connect(dock, &QDockWidget::topLevelChanged, this, [this, dock](bool floating) {
-      if (!floating && m_leftDockAreaPreferredWidth > 0) {
-        QTimer::singleShot(0, this, [this, dock]() {
-          if (!dock || !dock->isVisible() || dock->isFloating() || dockWidgetArea(dock) != Qt::LeftDockWidgetArea) {
-            return;
-          }
-          resizeDocks({dock}, {m_leftDockAreaPreferredWidth}, Qt::Horizontal);
-          activateMainLayout();
-        });
+      if (!floating) {
+        QTimer::singleShot(0, this, [this]() { applyDockAreaTargets(true, true); });
       }
       scheduleDockStateUpdate(false);
     });
@@ -721,24 +745,7 @@ void MainWindow::resizeEvent(QResizeEvent *event) {
     if ((widthExpanded || heightExpanded) && !m_preferredDockState.isEmpty()) {
       restoreState(m_preferredDockState, kDockLayoutStateVersion);
     }
-    if (widthExpanded && m_leftDockAreaPreferredWidth > 0) {
-      for (QDockWidget *dock : std::initializer_list<QDockWidget *>{m_rawfile_dock, m_vgmfile_dock, m_coll_view_dock}) {
-        if (!dock || !dock->isVisible() || dock->isFloating() || dockWidgetArea(dock) != Qt::LeftDockWidgetArea) {
-          continue;
-        }
-        resizeDocks({dock}, {m_leftDockAreaPreferredWidth}, Qt::Horizontal);
-        break;
-      }
-    }
-    if (heightExpanded && m_bottomDockAreaPreferredHeight > 0) {
-      for (QDockWidget *dock : std::initializer_list<QDockWidget *>{m_coll_dock, m_logger}) {
-        if (!dock || !dock->isVisible() || dock->isFloating() || dockWidgetArea(dock) != Qt::BottomDockWidgetArea) {
-          continue;
-        }
-        resizeDocks({dock}, {m_bottomDockAreaPreferredHeight}, Qt::Vertical);
-        break;
-      }
-    }
+    applyDockAreaTargets(widthExpanded, heightExpanded);
     applyLeftDockHeightConstraints();
     activateMainLayout();
   });
