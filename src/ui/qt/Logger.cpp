@@ -10,7 +10,7 @@
 #include <QColor>
 #include <QFileDialog>
 #include <QFontDatabase>
-#include <QGridLayout>
+#include <QFrame>
 #include <QMenu>
 #include <QPlainTextEdit>
 #include <QSaveFile>
@@ -19,6 +19,7 @@
 #include <QTimer>
 #include <QToolButton>
 #include <QPalette>
+#include <QWidget>
 #include <LogItem.h>
 #include "QtVGMRoot.h"
 #include "TitleBar.h"
@@ -99,23 +100,17 @@ Logger::Logger(QWidget *parent)
 }
 
 void Logger::createElements() {
-  logger_wrapper = new QWidget;
-
-  logger_textarea = new QPlainTextEdit(logger_wrapper);
+  logger_textarea = new QPlainTextEdit(this);
   logger_textarea->setReadOnly(true);
   logger_textarea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
   logger_textarea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
   logger_textarea->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+  logger_textarea->setFrameStyle(QFrame::NoFrame);
   m_flushTimer->setSingleShot(true);
   connect(m_flushTimer, &QTimer::timeout, this, &Logger::flushPending);
 
-  QGridLayout *logger_layout = new QGridLayout;
-  logger_layout->addWidget(logger_textarea, 0, 0);
-
-  logger_wrapper->setLayout(logger_layout);
-
-  setWidget(logger_wrapper);
-};
+  setWidget(logger_textarea);
+}
 
 void Logger::connectElements() {
   connect(&qtVGMRoot, &QtVGMRoot::UI_log, this, &Logger::push);
@@ -161,11 +156,11 @@ void Logger::installTitleBarControls(TitleBar *titleBar) {
   m_filterButton->setText(filterButtonText(m_level));
   m_filterButton->setStyleSheet(
       QStringLiteral(
-          "QToolButton { border: none; background: transparent; padding: 0px; margin: 0px; color: %1; }"
+          "QToolButton { border: none; background: transparent; padding: 0px; margin: 0px 0px 0px 6px; color: %1; }"
           "QToolButton::menu-indicator { image: none; width: 0px; }")
           .arg(cssColor(buttonColor)));
   QFont font = m_filterButton->font();
-  font.setPointSizeF(font.pointSizeF() + 1.0);
+  font.setPointSizeF(font.pointSizeF() + 0.25);
   m_filterButton->setFont(font);
   m_filterButton->setMinimumWidth(m_filterButton->fontMetrics().horizontalAdvance(filterButtonText(LOG_LEVEL_WARN)));
 
@@ -184,10 +179,13 @@ void Logger::installTitleBarControls(TitleBar *titleBar) {
   m_filterButton->setMenu(filterMenu);
   titleBar->addLeadingWidget(m_filterButton);
 
-  if (QToolButton *clearButton = addIconButton(QStringLiteral(":/icons/eraser.svg"), QStringLiteral("Clear log"))) {
+  if (QToolButton *clearButton = addIconButton(QStringLiteral(":/icons/trash-can-outline.svg"), QStringLiteral("Clear All"))) {
     connect(clearButton, &QToolButton::clicked, this, &Logger::clearLog);
   }
-  if (QToolButton *exportButton = addIconButton(QStringLiteral(":/icons/export.svg"), QStringLiteral("Export log"))) {
+  auto *buttonSpacer = new QWidget(titleBar);
+  buttonSpacer->setFixedWidth(6);
+  titleBar->addLeadingWidget(buttonSpacer);
+  if (QToolButton *exportButton = addIconButton(QStringLiteral(":/icons/export.svg"), QStringLiteral("Export Log"))) {
     connect(exportButton, &QToolButton::clicked, this, &Logger::exportLog);
   }
 }

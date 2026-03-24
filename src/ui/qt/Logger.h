@@ -42,7 +42,6 @@ private:
     LogLevel level;
   };
 
-  QWidget *logger_wrapper;
   QPlainTextEdit *logger_textarea;
   QToolButton *m_filterButton{};
 
