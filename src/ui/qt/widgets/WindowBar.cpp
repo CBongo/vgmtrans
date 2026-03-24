@@ -30,6 +30,17 @@ constexpr int kCustomWindowIconButtonWidth = 36;
 constexpr int kCustomWindowButtonWidth = 46;
 constexpr int kCustomWindowIconSize = 18;
 constexpr int kCustomWindowGlyphSize = 12;
+constexpr int kLinuxWindowButtonSize = 32;
+#if defined(Q_OS_WIN)
+constexpr bool kWindowsCustomChrome = true;
+#else
+constexpr bool kWindowsCustomChrome = false;
+#endif
+#if defined(Q_OS_LINUX)
+constexpr bool kLinuxCustomChrome = true;
+#else
+constexpr bool kLinuxCustomChrome = false;
+#endif
 constexpr qreal kPlaybackControlsFreeWidthFraction = 0.55;
 constexpr qreal kFreeWidthThreshold = 0.3;
 
@@ -114,11 +125,7 @@ WindowBar::WindowBar(QWidget *parent) : QWidget(parent) {
   m_rightControls = new QWidget(this);
   auto *buttonLayout = new QHBoxLayout(m_rightControls);
   buttonLayout->setContentsMargins(0, 0, 0, 0);
-#if defined(Q_OS_WIN) || defined(Q_OS_LINUX)
-  buttonLayout->setSpacing(0);
-#else
-  buttonLayout->setSpacing(4);
-#endif
+  buttonLayout->setSpacing(kWindowsCustomChrome ? 0 : 4);
   m_rightControls->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 
   m_minimizeButton = createWindowButton("Minimize window");
@@ -417,19 +424,22 @@ void WindowBar::applyWindowButtonStyle(QToolButton *button, bool closeButton, bo
   QColor closePressedFill(QStringLiteral("#c50f1f"));
 
   button->setToolButtonStyle(Qt::ToolButtonIconOnly);
-  button->setFixedSize(kCustomWindowButtonWidth, kTitleBarHeight);
+  button->setFixedSize(kLinuxCustomChrome ? kLinuxWindowButtonSize : kCustomWindowButtonWidth,
+                       kLinuxCustomChrome ? kLinuxWindowButtonSize : kTitleBarHeight);
   button->setIconSize(QSize(kCustomWindowGlyphSize, kCustomWindowGlyphSize));
   button->setStyleSheet(QStringLiteral(
       "QToolButton {"
       " border: none;"
       " background: transparent;"
+      " border-radius: %1px;"
       " padding: 0px;"
       " margin: 0px;"
       "}"
-      "QToolButton:hover { background: %1; }"
-      "QToolButton:pressed { background: %2; }")
-                            .arg(cssColor(closeButton ? closeHoverFill : hoverFill))
-                            .arg(cssColor(closeButton ? closePressedFill : pressedFill)));
+      "QToolButton:hover { background: %2; }"
+      "QToolButton:pressed { background: %3; }")
+                            .arg(kLinuxCustomChrome ? kLinuxWindowButtonSize / 2 : 0)
+                            .arg(cssColor(closeButton && kWindowsCustomChrome ? closeHoverFill : hoverFill))
+                            .arg(cssColor(closeButton && kWindowsCustomChrome ? closePressedFill : pressedFill)));
 #else
   Q_UNUSED(closeButton);
   Q_UNUSED(iconButton);
@@ -498,7 +508,8 @@ void WindowBar::syncWindowButtons() {
   }
   if (m_closeButton) {
     m_closeButton->setIcon(multiStateStencilIcon(
-        QStringLiteral(":/window-bar/close.svg"), buttonColor, Qt::white, disabledColor,
+        QStringLiteral(":/window-bar/close.svg"), buttonColor,
+        kWindowsCustomChrome ? QColor(Qt::white) : buttonColor, disabledColor,
         QSize(kCustomWindowGlyphSize, kCustomWindowGlyphSize)));
   }
 #else
