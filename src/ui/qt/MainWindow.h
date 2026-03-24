@@ -58,8 +58,10 @@ private:
   void routeSignals();
   void activateMainLayout();
   void captureFixedLeftDockHeights(bool onlyIfUnset);
+  void captureLeftDockAreaWidth(bool onlyIfUnset);
   void scheduleDockStateUpdate(bool captureFixedDockHeights);
   void applyLeftDockHeightConstraints();
+  void applyLeftDockAreaWidth(QDockWidget *dock = nullptr);
   void applyDefaultDockLayout();
   void showRestoredFloatingDocks();
   void resetDockLayout();
@@ -89,6 +91,7 @@ private:
   QByteArray m_preferredDockState{};
   int m_rawFilePreferredHeight{};
   int m_collViewPreferredHeight{};
+  int m_leftDockAreaPreferredWidth{};
   bool m_dockSeparatorDragActive{};
   int m_dockResizeSyncGeneration{};
 };
