@@ -124,7 +124,7 @@ WindowBar::WindowBar(QWidget *parent) : QWidget(parent) {
 
   m_rightControls = new QWidget(this);
   auto *buttonLayout = new QHBoxLayout(m_rightControls);
-  buttonLayout->setContentsMargins(0, 0, 0, 0);
+  buttonLayout->setContentsMargins(0, 0, kLinuxCustomChrome ? 4 : 0, 0);
   buttonLayout->setSpacing(kWindowsCustomChrome ? 0 : 4);
   m_rightControls->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 
