@@ -9,7 +9,7 @@
   <file>icons/sequence.svg</file>
   <file>icons/sample-collection.svg</file>
   <file>icons/sample.svg</file>
-  <file>icons/file.svg</file>
+  <file>icons/file-outline.svg</file>
   <file>icons/collection.svg</file>
   <file>icons/instrument-set.svg</file>
   <file>icons/instr.svg</file>
@@ -41,6 +41,11 @@
   <file>icons/toast_close.svg</file>
   <file>icons/minus.svg</file>
   <file>icons/plus.svg</file>
+  <file>icons/file-search-outline.svg</file>
+  <file>icons/music-box-outline.svg</file>
+  <file>icons/music-box-multiple-outline.svg</file>
+  <file>icons/book-open-variant-outline.svg</file>
+  <file>icons/package-variant.svg</file>
   <file>window-bar/minimize.svg</file>
   <file>window-bar/maximize.svg</file>
   <file>window-bar/restore.svg</file>

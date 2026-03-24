@@ -99,10 +99,8 @@ void MenuBar::appendViewMenu(const QList<QDockWidget *> &dockWidgets) {
   m_viewMenu = addMenu("View");
   m_topLevelMenus.insert("View", m_viewMenu);
 
-  auto *toolWindowsMenu = m_viewMenu->addMenu("Tool Windows");
-
   for (auto &widget : dockWidgets) {
-    toolWindowsMenu->addAction(widget->toggleViewAction());
+    m_viewMenu->addAction(widget->toggleViewAction());
   }
 
   m_viewMenu->addSeparator();

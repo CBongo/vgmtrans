@@ -199,7 +199,7 @@ void MainWindow::createElements() {
     dock->setTitleBarWidget(titleBar);
   };
 
-  m_rawfile_dock = new QDockWidget("Raw files");
+  m_rawfile_dock = new QDockWidget("Scanned Files");
   m_rawfile_dock->setAllowedAreas(Qt::LeftDockWidgetArea);
   m_rawfile_dock->setWidget(new RawFileListView());
   m_rawfile_dock->setContentsMargins(0, 0, 0, 0);
@@ -229,7 +229,7 @@ void MainWindow::createElements() {
   m_coll_dock->setContentsMargins(0, 0, 0, 0);
   installTitleBar(m_coll_dock, "Collections", TitleBar::HideButton | TitleBar::NewButton);
 
-  m_coll_view_dock = new QDockWidget("Collection contents");
+  m_coll_view_dock = new QDockWidget("Collection Contents");
   m_coll_view_dock->setAllowedAreas(Qt::LeftDockWidgetArea);
   m_coll_view_dock->setWidget(m_coll_view);
   m_coll_view_dock->setContentsMargins(0, 0, 0, 0);
@@ -241,15 +241,18 @@ void MainWindow::createElements() {
   m_vgmfile_dock->setFocus();
 
   m_logger = new Logger();
+  m_logger->setWindowTitle("Logs");
   m_logger->setAllowedAreas(Qt::BottomDockWidgetArea);
   addDockWidget(Qt::BottomDockWidgetArea, m_logger);
   addDockWidget(Qt::BottomDockWidgetArea, m_coll_dock);
   m_logger->hide();
   m_rawfile_dock->hide();
-  m_coll_dock->hide();
 
-  for (QDockWidget *dock :
-       QList<QDockWidget *>{m_rawfile_dock, m_vgmfile_dock, m_coll_dock, m_coll_view_dock, m_logger}) {
+  const QList<QDockWidget *> viewMenuDocks{
+      m_vgmfile_dock, m_coll_dock, m_coll_view_dock, m_rawfile_dock, m_logger,
+  };
+
+  for (QDockWidget *dock : viewMenuDocks) {
     if (!dock) {
       continue;
     }
@@ -259,26 +262,24 @@ void MainWindow::createElements() {
     connect(dock, &QDockWidget::topLevelChanged, this, [this](bool) { scheduleDockStateUpdate(false); });
   }
 
-  QList<QDockWidget *> docks = findChildren<QDockWidget *>(QString(), Qt::FindDirectChildrenOnly);
-
   m_windowBar = new WindowBar(this);
 
 #if defined(Q_OS_MACOS) || defined(Q_OS_MAC)
-  m_menu_bar = new MenuBar(nullptr, docks);
+  m_menu_bar = new MenuBar(nullptr, viewMenuDocks);
   m_menu_bar->setNativeMenuBar(true);
 #else
-  m_menu_bar = new MenuBar(nullptr, docks);
+  m_menu_bar = new MenuBar(nullptr, viewMenuDocks);
   m_menu_bar->setNativeMenuBar(false);
   m_windowBar->setMenuBarWidget(m_menu_bar);
 #endif
   m_menu_bar->setShortcutHost(this);
   m_windowBar->setCenterWidget(m_playback_controls);
   m_windowBar->setDockToggleButtons({
-      {m_rawfile_dock->toggleViewAction(), QStringLiteral(":/icons/file.svg")},
-      {m_vgmfile_dock->toggleViewAction(), QStringLiteral(":/icons/sequence.svg")},
-      {m_coll_view_dock->toggleViewAction(), QStringLiteral(":/icons/binary.svg")},
-      {m_coll_dock->toggleViewAction(), QStringLiteral(":/icons/collection.svg")},
-      {m_logger->toggleViewAction(), QStringLiteral(":/icons/tray-arrow-down.svg")},
+      {m_vgmfile_dock->toggleViewAction(), QStringLiteral(":/icons/music-box-outline.svg")},
+      {m_coll_dock->toggleViewAction(), QStringLiteral(":/icons/music-box-multiple-outline.svg")},
+      {m_coll_view_dock->toggleViewAction(), QStringLiteral(":/icons/package-variant.svg")},
+      {m_rawfile_dock->toggleViewAction(), QStringLiteral(":/icons/file-search-outline.svg")},
+      {m_logger->toggleViewAction(), QStringLiteral(":/icons/book-open-variant-outline.svg")},
   });
   createStatusBar();
   m_toastHost = new ToastHost(this);
