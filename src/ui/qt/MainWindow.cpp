@@ -248,8 +248,8 @@ void MainWindow::createElements() {
   if (TitleBar *loggerTitleBar = installTitleBar(m_logger, "Logs", TitleBar::HideButton)) {
     m_logger->installTitleBarControls(loggerTitleBar);
   }
-  addDockWidget(Qt::BottomDockWidgetArea, m_logger);
   addDockWidget(Qt::BottomDockWidgetArea, m_coll_dock);
+  addDockWidget(Qt::BottomDockWidgetArea, m_logger);
   m_logger->hide();
   m_rawfile_dock->hide();
 
@@ -266,7 +266,6 @@ void MainWindow::createElements() {
             [this](Qt::DockWidgetArea) { scheduleDockStateUpdate(false); });
     connect(dock, &QDockWidget::topLevelChanged, this, [this](bool) { scheduleDockStateUpdate(false); });
   }
-
   m_windowBar = new WindowBar(this);
 
 #if defined(Q_OS_MACOS) || defined(Q_OS_MAC)
