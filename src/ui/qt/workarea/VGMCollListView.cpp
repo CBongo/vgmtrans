@@ -120,6 +120,7 @@ VGMCollListView::VGMCollListView(QWidget *parent) : QListView(parent) {
   setSelectionMode(QAbstractItemView::ExtendedSelection);
   setResizeMode(QListView::Adjust);
   setIconSize(QSize(16, 16));
+  ItemViewDelegate::apply(this);
   setWrapping(true);
 
 #ifdef Q_OS_MAC

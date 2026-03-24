@@ -104,6 +104,7 @@ target_sources(vgmtrans
     FILE_SET headers_widgets TYPE HEADERS BASE_DIRS widgets
     FILES
       widgets/SeekBar.h
+      widgets/ItemViewDelegate.h
       widgets/MarqueeLabel.h
       widgets/SnappingSplitter.h
       widgets/StatusBarContent.h

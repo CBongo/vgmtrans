@@ -6,6 +6,7 @@
 
 #include "VGMCollView.h"
 
+#include <algorithm>
 #include <QVBoxLayout>
 #include <QListView>
 #include <QKeyEvent>
@@ -18,6 +19,7 @@
 #include <VGMColl.h>
 #include "QtVGMRoot.h"
 #include "Helpers.h"
+#include "ItemViewDelegate.h"
 #include "MdiArea.h"
 #include "services/NotificationCenter.h"
 #include "services/MenuManager.h"
@@ -143,8 +145,10 @@ VGMCollView::VGMCollView(QWidget *parent) : QWidget(parent) {
 
   m_listview = new QListView(this);
   m_listview->setAttribute(Qt::WA_MacShowFocusRect, false);
+  m_listview->setItemDelegate(new ItemViewDelegate(m_listview));
   m_listview->setIconSize(QSize(16, 16));
   m_listview->setContextMenuPolicy(Qt::CustomContextMenu);
+  ItemViewDelegate::apply(m_listview);
   layout->addWidget(m_listview);
 
   vgmCollViewModel = new VGMCollViewModel(this);

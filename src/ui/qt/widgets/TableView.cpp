@@ -5,6 +5,7 @@
 */
 
 #include "TableView.h"
+#include "ItemViewDelegate.h"
 #include <QHeaderView>
 
 TableView::TableView(QWidget *parent) : QTableView(parent) {
@@ -15,6 +16,8 @@ TableView::TableView(QWidget *parent) : QTableView(parent) {
   setWordWrap(false);
 
   verticalHeader()->hide();
+  setItemDelegate(new ItemViewDelegate(this));
+  ItemViewDelegate::apply(this);
 
   setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 

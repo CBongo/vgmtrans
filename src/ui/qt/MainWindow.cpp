@@ -264,7 +264,7 @@ void MainWindow::applyLeftDockHeightConstraints() {
 
 void MainWindow::applyDefaultDockLayout() {
   const int totalHeight = height();
-  constexpr int fixedLeftDockHeight = Size::VTab + (4.5 * 24);
+  constexpr int fixedLeftDockHeight = Size::VTab + (4.5 * Size::ItemViewRow);
 
   m_rawfile_dock->show();
   m_vgmfile_dock->show();

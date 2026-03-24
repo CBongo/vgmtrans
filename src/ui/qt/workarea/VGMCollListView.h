@@ -6,9 +6,9 @@
 
 #pragma once
 #include <QAbstractListModel>
-#include <QStyledItemDelegate>
 #include <QListView>
 #include <QKeyEvent>
+#include "ItemViewDelegate.h"
 
 class VGMColl;
 class VGMFile;
@@ -27,9 +27,9 @@ private:
   bool isLoadingRawFile = false;
 };
 
-class VGMCollNameEditor : public QStyledItemDelegate {
+class VGMCollNameEditor : public ItemViewDelegate {
 public:
-  explicit VGMCollNameEditor(QObject* parent = nullptr) : QStyledItemDelegate(parent) {}
+  explicit VGMCollNameEditor(QObject* parent = nullptr) : ItemViewDelegate(parent) {}
 
 protected:
   void setEditorData(QWidget *editor, const QModelIndex &index) const override;
