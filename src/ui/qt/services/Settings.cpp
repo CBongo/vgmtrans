@@ -118,3 +118,11 @@ void Settings::MainWindowSettings::clearDockState() const {
   settings.remove("dockState");
   settings.endGroup();
 }
+
+QByteArray Settings::MainWindowSettings::floatingDockGeometry(const QString& dockName) const {
+  return settings.value(QStringLiteral("MainWindow/FloatingDocks/%1").arg(dockName)).toByteArray();
+}
+
+void Settings::MainWindowSettings::setFloatingDockGeometry(const QString& dockName, const QByteArray& geometry) const {
+  settings.setValue(QStringLiteral("MainWindow/FloatingDocks/%1").arg(dockName), geometry);
+}

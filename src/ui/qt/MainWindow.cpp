@@ -238,6 +238,23 @@ void MainWindow::applyDefaultDockLayout() {
   m_logger->hide();
 }
 
+void MainWindow::showRestoredFloatingDocks() {
+  QTimer::singleShot(0, this, [this]() {
+    for (QDockWidget *dock : std::initializer_list<QDockWidget *>{m_rawfile_dock, m_vgmfile_dock, m_coll_dock,
+                                                                   m_coll_view_dock, m_logger}) {
+      if (!dock || !dock->isFloating() || !dock->toggleViewAction()->isChecked()) {
+        continue;
+      }
+      dock->show();
+      const QByteArray geometry = Settings::the()->mainWindow.floatingDockGeometry(dock->objectName());
+      if (!geometry.isEmpty()) {
+        dock->restoreGeometry(geometry);
+      }
+      dock->raise();
+    }
+  });
+}
+
 void MainWindow::resetDockLayout() {
   if (m_defaultDockState.isEmpty()) {
     return;
@@ -263,6 +280,15 @@ void MainWindow::resetDockLayout() {
 
 void MainWindow::saveLayoutSettings() const {
   Settings::the()->mainWindow.setWindowGeometry(saveGeometry());
+  for (QDockWidget *dock : std::initializer_list<QDockWidget *>{m_rawfile_dock, m_vgmfile_dock, m_coll_dock,
+                                                                 m_coll_view_dock, m_logger}) {
+    if (!dock) {
+      continue;
+    }
+    if (dock->isFloating()) {
+      Settings::the()->mainWindow.setFloatingDockGeometry(dock->objectName(), dock->saveGeometry());
+    }
+  }
   if (!m_preferredDockState.isEmpty()) {
     Settings::the()->mainWindow.setDockState(m_preferredDockState);
   } else {
@@ -441,6 +467,7 @@ void MainWindow::showEvent(QShowEvent* event) {
         !restoreState(m_preferredDockState, kDockLayoutStateVersion)) {
       m_preferredDockState.clear();
     }
+    showRestoredFloatingDocks();
 
     if (m_preferredDockState.isEmpty()) {
       m_preferredDockState = m_defaultDockState;

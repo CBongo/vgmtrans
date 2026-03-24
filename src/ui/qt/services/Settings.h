@@ -119,6 +119,9 @@ public:
     QByteArray dockState() const;
     void setDockState(const QByteArray& dockState) const;
     void clearDockState() const;
+
+    QByteArray floatingDockGeometry(const QString& dockName) const;
+    void setFloatingDockGeometry(const QString& dockName, const QByteArray& geometry) const;
   };
   MainWindowSettings mainWindow;
 

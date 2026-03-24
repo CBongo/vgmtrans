@@ -61,6 +61,7 @@ private:
   void scheduleDockStateUpdate(bool captureFixedDockHeights);
   void applyLeftDockHeightConstraints();
   void applyDefaultDockLayout();
+  void showRestoredFloatingDocks();
   void resetDockLayout();
   void saveLayoutSettings() const;
   void updateDragOverlayAppearance();
