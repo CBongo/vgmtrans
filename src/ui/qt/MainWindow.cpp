@@ -243,6 +243,8 @@ void MainWindow::createElements() {
   m_logger = new Logger();
   m_logger->setWindowTitle("Logs");
   m_logger->setAllowedAreas(Qt::BottomDockWidgetArea);
+  m_logger->setContentsMargins(0, 0, 0, 0);
+  installTitleBar(m_logger, "Logs", TitleBar::HideButton);
   addDockWidget(Qt::BottomDockWidgetArea, m_logger);
   addDockWidget(Qt::BottomDockWidgetArea, m_coll_dock);
   m_logger->hide();
