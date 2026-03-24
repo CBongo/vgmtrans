@@ -58,10 +58,9 @@ private:
   void routeSignals();
   void activateMainLayout();
   void captureFixedLeftDockHeights(bool onlyIfUnset);
-  void captureLeftDockAreaWidth(bool onlyIfUnset);
+  void captureLeftDockAreaWidth();
   void scheduleDockStateUpdate(bool captureFixedDockHeights);
   void applyLeftDockHeightConstraints();
-  void applyLeftDockAreaWidth(QDockWidget *dock = nullptr);
   void applyDefaultDockLayout();
   void showRestoredFloatingDocks();
   void resetDockLayout();
