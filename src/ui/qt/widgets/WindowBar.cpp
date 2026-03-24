@@ -26,10 +26,10 @@ constexpr int kMacWindowBarRightMargin = 10;
 constexpr int kTitleBarToggleButtonWidth = 30;
 constexpr int kTitleBarToggleButtonHeight = 25;
 constexpr int kTitleBarToggleIconSize = 19;
-constexpr int kWindowsWindowIconButtonWidth = 36;
-constexpr int kWindowsWindowButtonWidth = 46;
-constexpr int kWindowsWindowIconSize = 18;
-constexpr int kWindowsWindowGlyphSize = 12;
+constexpr int kCustomWindowIconButtonWidth = 36;
+constexpr int kCustomWindowButtonWidth = 46;
+constexpr int kCustomWindowIconSize = 18;
+constexpr int kCustomWindowGlyphSize = 12;
 constexpr qreal kPlaybackControlsFreeWidthFraction = 0.55;
 constexpr qreal kFreeWidthThreshold = 0.3;
 
@@ -100,12 +100,10 @@ WindowBar::WindowBar(QWidget *parent) : QWidget(parent) {
   m_layout->addWidget(m_rightCenterSpacer);
   m_layout->addWidget(m_dockControls, 0, Qt::AlignVCenter);
 #else
-#if defined(Q_OS_WIN)
   m_windowIconButton = createWindowButton(QString());
   m_windowIconButton->setObjectName(QStringLiteral("windowIconButton"));
   applyWindowButtonStyle(m_windowIconButton, false, true);
   m_layout->addWidget(m_windowIconButton, 0, Qt::AlignVCenter);
-#endif
   m_layout->addWidget(m_menuBarWidget, 0, Qt::AlignVCenter);
   m_layout->addWidget(m_leftCenterSpacer);
   m_layout->addWidget(m_centerWidget, 0, Qt::AlignVCenter);
@@ -116,7 +114,7 @@ WindowBar::WindowBar(QWidget *parent) : QWidget(parent) {
   m_rightControls = new QWidget(this);
   auto *buttonLayout = new QHBoxLayout(m_rightControls);
   buttonLayout->setContentsMargins(0, 0, 0, 0);
-#if defined(Q_OS_WIN)
+#if defined(Q_OS_WIN) || defined(Q_OS_LINUX)
   buttonLayout->setSpacing(0);
 #else
   buttonLayout->setSpacing(4);
@@ -127,14 +125,12 @@ WindowBar::WindowBar(QWidget *parent) : QWidget(parent) {
   m_maximizeButton = createWindowButton("Maximize window");
   m_closeButton = createWindowButton("Close window");
 
-#if defined(Q_OS_WIN)
   m_minimizeButton->setObjectName(QStringLiteral("minimizeButton"));
   m_maximizeButton->setObjectName(QStringLiteral("maximizeButton"));
   m_closeButton->setObjectName(QStringLiteral("closeButton"));
   applyWindowButtonStyle(m_minimizeButton);
   applyWindowButtonStyle(m_maximizeButton);
   applyWindowButtonStyle(m_closeButton, true);
-#endif
 
   connect(m_minimizeButton, &QToolButton::clicked, this, [this]() {
     if (QWidget *topLevelWindow = window()) {
@@ -399,11 +395,11 @@ void WindowBar::applyWindowButtonStyle(QToolButton *button, bool closeButton, bo
     return;
   }
 
-#if defined(Q_OS_WIN)
+#if defined(Q_OS_WIN) || defined(Q_OS_LINUX)
   if (iconButton) {
     button->setToolButtonStyle(Qt::ToolButtonIconOnly);
-    button->setFixedSize(kWindowsWindowIconButtonWidth, kTitleBarHeight);
-    button->setIconSize(QSize(kWindowsWindowIconSize, kWindowsWindowIconSize));
+    button->setFixedSize(kCustomWindowIconButtonWidth, kTitleBarHeight);
+    button->setIconSize(QSize(kCustomWindowIconSize, kCustomWindowIconSize));
     button->setStyleSheet(QStringLiteral(
         "QToolButton {"
         " border: none;"
@@ -421,8 +417,8 @@ void WindowBar::applyWindowButtonStyle(QToolButton *button, bool closeButton, bo
   QColor closePressedFill(QStringLiteral("#c50f1f"));
 
   button->setToolButtonStyle(Qt::ToolButtonIconOnly);
-  button->setFixedSize(kWindowsWindowButtonWidth, kTitleBarHeight);
-  button->setIconSize(QSize(kWindowsWindowGlyphSize, kWindowsWindowGlyphSize));
+  button->setFixedSize(kCustomWindowButtonWidth, kTitleBarHeight);
+  button->setIconSize(QSize(kCustomWindowGlyphSize, kCustomWindowGlyphSize));
   button->setStyleSheet(QStringLiteral(
       "QToolButton {"
       " border: none;"
@@ -447,7 +443,7 @@ QToolButton *WindowBar::createWindowButton(const QString& toolTip) {
   button->setToolTip(toolTip);
   button->setCursor(Qt::ArrowCursor);
 
-#if defined(Q_OS_WIN)
+#if defined(Q_OS_WIN) || defined(Q_OS_LINUX)
   button->setFixedHeight(kTitleBarHeight);
 #else
   const int buttonSize = style()->pixelMetric(QStyle::PM_TitleBarButtonSize, nullptr, this);
@@ -478,7 +474,7 @@ void WindowBar::syncWindowButtons() {
 #if !defined(Q_OS_MACOS) && !defined(Q_OS_MAC)
   const bool maximized = window() && window()->isMaximized();
 
-#if defined(Q_OS_WIN)
+#if defined(Q_OS_WIN) || defined(Q_OS_LINUX)
   const bool darkPalette = isDarkPalette(palette());
   const QColor windowColor = palette().color(QPalette::Window);
   const QColor buttonColor =
@@ -492,18 +488,18 @@ void WindowBar::syncWindowButtons() {
   if (m_minimizeButton) {
     m_minimizeButton->setIcon(multiStateStencilIcon(
         QStringLiteral(":/window-bar/minimize.svg"), buttonColor, buttonColor, disabledColor,
-        QSize(kWindowsWindowGlyphSize, kWindowsWindowGlyphSize)));
+        QSize(kCustomWindowGlyphSize, kCustomWindowGlyphSize)));
   }
   if (m_maximizeButton) {
     m_maximizeButton->setIcon(multiStateStencilIcon(
         maximized ? QStringLiteral(":/window-bar/restore.svg") : QStringLiteral(":/window-bar/maximize.svg"),
-        buttonColor, buttonColor, disabledColor, QSize(kWindowsWindowGlyphSize, kWindowsWindowGlyphSize)));
+        buttonColor, buttonColor, disabledColor, QSize(kCustomWindowGlyphSize, kCustomWindowGlyphSize)));
     m_maximizeButton->setToolTip(maximized ? "Restore window" : "Maximize window");
   }
   if (m_closeButton) {
     m_closeButton->setIcon(multiStateStencilIcon(
         QStringLiteral(":/window-bar/close.svg"), buttonColor, Qt::white, disabledColor,
-        QSize(kWindowsWindowGlyphSize, kWindowsWindowGlyphSize)));
+        QSize(kCustomWindowGlyphSize, kCustomWindowGlyphSize)));
   }
 #else
   if (m_minimizeButton) {
