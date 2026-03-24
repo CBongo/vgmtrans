@@ -210,22 +210,22 @@ void MainWindow::applyLeftDockHeightConstraints() {
 
 void MainWindow::applyDefaultDockLayout() {
   const int totalHeight = height();
-  const int collectionDockHeight = totalHeight / 5;
+  const int fixedLeftDockHeight = totalHeight / 5;
 
+  m_rawfile_dock->show();
   m_vgmfile_dock->show();
   m_coll_dock->show();
   m_coll_view_dock->show();
   m_logger->show();
-  m_rawfile_dock->hide();
 
-  resizeDocks({m_vgmfile_dock, m_coll_view_dock},
-              {totalHeight - collectionDockHeight, collectionDockHeight},
+  resizeDocks({m_rawfile_dock, m_vgmfile_dock, m_coll_view_dock},
+              {fixedLeftDockHeight, totalHeight - (fixedLeftDockHeight * 2), fixedLeftDockHeight},
               Qt::Vertical);
   activateMainLayout();
 
   const int realizedCollectionDockHeight =
       (m_coll_view_dock && m_coll_view_dock->height() > 0) ? m_coll_view_dock->height()
-                                                            : collectionDockHeight;
+                                                            : fixedLeftDockHeight;
   resizeDocks({m_coll_dock, m_logger},
               {realizedCollectionDockHeight, realizedCollectionDockHeight},
               Qt::Vertical);
@@ -247,15 +247,17 @@ void MainWindow::resetDockLayout() {
   m_dockSeparatorDragActive = false;
   m_rawFilePreferredHeight = 0;
   m_collViewPreferredHeight = 0;
+  applyLeftDockHeightConstraints();
 
   if (!restoreState(m_defaultDockState, kDockLayoutStateVersion)) {
     return;
   }
 
+  applyDefaultDockLayout();
   activateMainLayout();
-  m_preferredDockState = m_defaultDockState;
   captureFixedLeftDockHeights(false);
   applyLeftDockHeightConstraints();
+  m_preferredDockState = saveState(kDockLayoutStateVersion);
   saveLayoutSettings();
 }
 
@@ -342,7 +344,6 @@ void MainWindow::createElements() {
   addDockWidget(Qt::BottomDockWidgetArea, m_coll_dock);
   // Keep the bottom docks in a side-by-side layout so the logger can have its own saved width.
   splitDockWidget(m_coll_dock, m_logger, Qt::Horizontal);
-  m_rawfile_dock->hide();
 
   const QList<QDockWidget *> viewMenuDocks{
       m_vgmfile_dock, m_coll_dock, m_coll_view_dock, m_rawfile_dock, m_logger,
