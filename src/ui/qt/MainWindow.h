@@ -59,6 +59,7 @@ private:
   void activateMainLayout();
   void captureFixedLeftDockHeights(bool onlyIfUnset);
   void captureLeftDockAreaWidth();
+  void captureBottomDockAreaHeight();
   void scheduleDockStateUpdate(bool captureFixedDockHeights);
   void applyLeftDockHeightConstraints();
   void applyDefaultDockLayout();
@@ -91,6 +92,7 @@ private:
   int m_rawFilePreferredHeight{};
   int m_collViewPreferredHeight{};
   int m_leftDockAreaPreferredWidth{};
+  int m_bottomDockAreaPreferredHeight{};
   bool m_dockSeparatorDragActive{};
   int m_dockResizeSyncGeneration{};
 };
