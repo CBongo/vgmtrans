@@ -266,8 +266,8 @@ void MainWindow::createElements() {
     m_logger->installTitleBarControls(loggerTitleBar);
   }
   addDockWidget(Qt::BottomDockWidgetArea, m_coll_dock);
-  addDockWidget(Qt::BottomDockWidgetArea, m_logger);
-  m_logger->hide();
+  // Keep the bottom docks in a side-by-side layout so the logger can have its own saved width.
+  splitDockWidget(m_coll_dock, m_logger, Qt::Horizontal);
   m_rawfile_dock->hide();
 
   const QList<QDockWidget *> viewMenuDocks{
@@ -358,24 +358,34 @@ void MainWindow::createStatusBar() {
 void MainWindow::showEvent(QShowEvent* event) {
   QMainWindow::showEvent(event);
 
-  const int totalHeight = height();
-  const int collectionDockHeight = totalHeight / 5;
-  resizeDocks({m_vgmfile_dock, m_coll_view_dock},
-              {totalHeight - collectionDockHeight, collectionDockHeight},
-              Qt::Vertical);
-  activateMainLayout();
-  const int realizedCollectionDockHeight =
-      (m_coll_view_dock && m_coll_view_dock->height() > 0) ? m_coll_view_dock->height()
-                                                            : collectionDockHeight;
-  resizeDocks({m_coll_dock, m_logger},
-              {realizedCollectionDockHeight, realizedCollectionDockHeight},
-              Qt::Vertical);
-  m_preferredDockState = saveState();
-  if (m_rawfile_dock && m_rawfile_dock->isVisible() && m_rawfile_dock->height() > 0) {
-    m_rawFilePreferredHeight = m_rawfile_dock->height();
+  if (m_preferredDockState.isEmpty()) {
+    // Seed the first-run dock layout once, then rely on the saved preferred state afterward.
+    const int totalHeight = height();
+    const int collectionDockHeight = totalHeight / 5;
+    resizeDocks({m_vgmfile_dock, m_coll_view_dock},
+                {totalHeight - collectionDockHeight, collectionDockHeight},
+                Qt::Vertical);
+    activateMainLayout();
+    const int realizedCollectionDockHeight =
+        (m_coll_view_dock && m_coll_view_dock->height() > 0) ? m_coll_view_dock->height()
+                                                              : collectionDockHeight;
+    resizeDocks({m_coll_dock, m_logger},
+                {realizedCollectionDockHeight, realizedCollectionDockHeight},
+                Qt::Vertical);
+    const int bottomDockAreaWidth = m_coll_dock->width() + m_logger->width();
+    resizeDocks({m_coll_dock, m_logger},
+                {bottomDockAreaWidth / 2, bottomDockAreaWidth / 2},
+                Qt::Horizontal);
+    activateMainLayout();
+    // Save the wider logger width as part of the default hidden layout.
+    m_logger->hide();
+    m_preferredDockState = saveState();
+    if (m_rawfile_dock && m_rawfile_dock->isVisible() && m_rawfile_dock->height() > 0) {
+      m_rawFilePreferredHeight = m_rawfile_dock->height();
+    }
+    m_collViewPreferredHeight = realizedCollectionDockHeight;
+    applyLeftDockHeightConstraints();
   }
-  m_collViewPreferredHeight = realizedCollectionDockHeight;
-  applyLeftDockHeightConstraints();
 
   updateDragOverlayGeometry();
 }
