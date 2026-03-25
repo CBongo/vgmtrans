@@ -61,7 +61,7 @@ private:
   void captureLeftDockAreaWidth();
   void captureBottomDockAreaHeight();
   void applyDockAreaTargets(bool applyLeftWidth, bool applyBottomHeight);
-  void scheduleDockStateUpdate(bool captureFixedDockHeights);
+  void scheduleDockStateUpdate(bool capturePreferredDockSizes);
   void applyDockSizeConstraints();
   void applyDefaultDockLayout();
   void showRestoredFloatingDocks();

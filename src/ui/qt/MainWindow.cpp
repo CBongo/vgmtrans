@@ -65,6 +65,31 @@ bool isDockSeparatorCursor(Qt::CursorShape shape) {
   return shape == Qt::SplitHCursor || shape == Qt::SplitVCursor;
 }
 
+bool isVisibleDockInArea(const QMainWindow *window, QDockWidget *dock, Qt::DockWidgetArea area) {
+  return dock && dock->isVisible() && !dock->isFloating() && window->dockWidgetArea(dock) == area;
+}
+
+int dockSizeForOrientation(QDockWidget *dock, Qt::Orientation orientation) {
+  return orientation == Qt::Horizontal ? dock->width() : dock->height();
+}
+
+void setDockSizeConstraint(QDockWidget *dock, Qt::Orientation orientation, bool lock, int preferredSize) {
+  if (!dock) {
+    return;
+  }
+
+  const int minSize = lock ? preferredSize : 0;
+  const int maxSize = lock ? preferredSize : QWIDGETSIZE_MAX;
+  if (orientation == Qt::Horizontal) {
+    dock->setMinimumWidth(minSize);
+    dock->setMaximumWidth(maxSize);
+    return;
+  }
+
+  dock->setMinimumHeight(minSize);
+  dock->setMaximumHeight(maxSize);
+}
+
 QStringList retrievePortalDroppedFiles([[maybe_unused]] const QMimeData* mimeData) {
 #if defined(VGMTRANS_HAVE_DBUS) && defined(Q_OS_LINUX)
   if (!mimeData) {
@@ -158,77 +183,92 @@ void MainWindow::activateMainLayout() {
 }
 
 void MainWindow::captureConstrainedDockSizes(bool onlyIfUnset) {
-  const auto updatePreferredHeight = [this, onlyIfUnset](QDockWidget *dock, int &preferredHeight) {
-    if (!dock || (onlyIfUnset && preferredHeight > 0)) {
+  const auto captureDockSize = [this, onlyIfUnset](QDockWidget *dock, Qt::DockWidgetArea area,
+                                                   Qt::Orientation orientation, int &preferredSize) {
+    if ((onlyIfUnset && preferredSize > 0) || !isVisibleDockInArea(this, dock, area)) {
       return;
     }
-    if (dock->isVisible() && !dock->isFloating() && dockWidgetArea(dock) == Qt::LeftDockWidgetArea &&
-        dock->height() > 0) {
-      preferredHeight = dock->height();
-    }
-  };
-  const auto updatePreferredWidth = [this, onlyIfUnset](QDockWidget *dock, int &preferredWidth) {
-    if (!dock || (onlyIfUnset && preferredWidth > 0)) {
-      return;
-    }
-    if (dock->isVisible() && !dock->isFloating() && dockWidgetArea(dock) == Qt::BottomDockWidgetArea &&
-        dock->width() > 0) {
-      preferredWidth = dock->width();
+    if (const int dockSize = dockSizeForOrientation(dock, orientation); dockSize > 0) {
+      preferredSize = dockSize;
     }
   };
 
-  updatePreferredHeight(m_rawfile_dock, m_rawFilePreferredHeight);
-  updatePreferredHeight(m_coll_view_dock, m_collViewPreferredHeight);
-  updatePreferredWidth(m_coll_view_dock, m_collViewPreferredBottomWidth);
+  captureDockSize(m_rawfile_dock, Qt::LeftDockWidgetArea, Qt::Vertical, m_rawFilePreferredHeight);
+  captureDockSize(m_coll_view_dock, Qt::LeftDockWidgetArea, Qt::Vertical, m_collViewPreferredHeight);
+  captureDockSize(m_coll_view_dock, Qt::BottomDockWidgetArea, Qt::Horizontal, m_collViewPreferredBottomWidth);
 }
 
 void MainWindow::captureLeftDockAreaWidth() {
-  for (QDockWidget *dock :
-       std::initializer_list<QDockWidget *>{m_rawfile_dock, m_vgmfile_dock, m_coll_dock, m_coll_view_dock}) {
-    if (!dock || !dock->isVisible() || dock->isFloating() || dockWidgetArea(dock) != Qt::LeftDockWidgetArea ||
-        dock->width() <= 0) {
-      continue;
+  const auto captureAreaSize = [this](std::initializer_list<QDockWidget *> docks, Qt::DockWidgetArea area,
+                                      Qt::Orientation orientation, int &preferredSize) {
+    for (QDockWidget *dock : docks) {
+      if (!isVisibleDockInArea(this, dock, area)) {
+        continue;
+      }
+      if (const int dockSize = dockSizeForOrientation(dock, orientation); dockSize > 0) {
+        preferredSize = dockSize;
+        return;
+      }
     }
-    m_leftDockAreaPreferredWidth = dock->width();
-    return;
-  }
+  };
+
+  captureAreaSize({m_rawfile_dock, m_vgmfile_dock, m_coll_dock, m_coll_view_dock},
+                  Qt::LeftDockWidgetArea,
+                  Qt::Horizontal,
+                  m_leftDockAreaPreferredWidth);
 }
 
 void MainWindow::captureBottomDockAreaHeight() {
-  for (QDockWidget *dock : std::initializer_list<QDockWidget *>{m_coll_dock, m_coll_view_dock, m_logger}) {
-    if (!dock || !dock->isVisible() || dock->isFloating() || dockWidgetArea(dock) != Qt::BottomDockWidgetArea ||
-        dock->height() <= 0) {
-      continue;
+  const auto captureAreaSize = [this](std::initializer_list<QDockWidget *> docks, Qt::DockWidgetArea area,
+                                      Qt::Orientation orientation, int &preferredSize) {
+    for (QDockWidget *dock : docks) {
+      if (!isVisibleDockInArea(this, dock, area)) {
+        continue;
+      }
+      if (const int dockSize = dockSizeForOrientation(dock, orientation); dockSize > 0) {
+        preferredSize = dockSize;
+        return;
+      }
     }
-    m_bottomDockAreaPreferredHeight = dock->height();
-    return;
-  }
+  };
+
+  captureAreaSize({m_coll_dock, m_coll_view_dock, m_logger},
+                  Qt::BottomDockWidgetArea,
+                  Qt::Vertical,
+                  m_bottomDockAreaPreferredHeight);
 }
 
 void MainWindow::applyDockAreaTargets(bool applyLeftWidth, bool applyBottomHeight) {
   bool resized = false;
+  const auto resizeAreaToPreferredSize =
+      [this, &resized](std::initializer_list<QDockWidget *> docks, Qt::DockWidgetArea area,
+                       Qt::Orientation orientation, int preferredSize) {
+        if (preferredSize <= 0) {
+          return;
+        }
 
-  if (applyLeftWidth && m_leftDockAreaPreferredWidth > 0) {
-    for (QDockWidget *dock :
-         std::initializer_list<QDockWidget *>{m_rawfile_dock, m_vgmfile_dock, m_coll_dock, m_coll_view_dock}) {
-      if (!dock || !dock->isVisible() || dock->isFloating() || dockWidgetArea(dock) != Qt::LeftDockWidgetArea) {
-        continue;
-      }
-      resizeDocks({dock}, {m_leftDockAreaPreferredWidth}, Qt::Horizontal);
-      resized = true;
-      break;
-    }
+        for (QDockWidget *dock : docks) {
+          if (!isVisibleDockInArea(this, dock, area)) {
+            continue;
+          }
+          resizeDocks({dock}, {preferredSize}, orientation);
+          resized = true;
+          return;
+        }
+      };
+
+  if (applyLeftWidth) {
+    resizeAreaToPreferredSize({m_rawfile_dock, m_vgmfile_dock, m_coll_dock, m_coll_view_dock},
+                              Qt::LeftDockWidgetArea,
+                              Qt::Horizontal,
+                              m_leftDockAreaPreferredWidth);
   }
 
-  if (applyBottomHeight && m_bottomDockAreaPreferredHeight > 0) {
-    for (QDockWidget *dock : std::initializer_list<QDockWidget *>{m_coll_dock, m_coll_view_dock, m_logger}) {
-      if (!dock || !dock->isVisible() || dock->isFloating() || dockWidgetArea(dock) != Qt::BottomDockWidgetArea) {
-        continue;
-      }
-      resizeDocks({dock}, {m_bottomDockAreaPreferredHeight}, Qt::Vertical);
-      resized = true;
-      break;
-    }
+  if (applyBottomHeight) {
+    resizeAreaToPreferredSize({m_coll_dock, m_coll_view_dock, m_logger},
+                              Qt::BottomDockWidgetArea,
+                              Qt::Vertical,
+                              m_bottomDockAreaPreferredHeight);
   }
 
   if (resized) {
@@ -236,11 +276,11 @@ void MainWindow::applyDockAreaTargets(bool applyLeftWidth, bool applyBottomHeigh
   }
 }
 
-void MainWindow::scheduleDockStateUpdate(bool captureFixedDockHeights) {
+void MainWindow::scheduleDockStateUpdate(bool capturePreferredDockSizes) {
   // Defer until the current dock/layout change finishes so we capture the settled user layout.
-  QTimer::singleShot(0, this, [this, captureFixedDockHeights]() {
+  QTimer::singleShot(0, this, [this, capturePreferredDockSizes]() {
     activateMainLayout();
-    if (captureFixedDockHeights) {
+    if (capturePreferredDockSizes) {
       captureConstrainedDockSizes(false);
       captureLeftDockAreaWidth();
       captureBottomDockAreaHeight();
@@ -255,42 +295,15 @@ void MainWindow::scheduleDockStateUpdate(bool captureFixedDockHeights) {
 }
 
 void MainWindow::applyDockSizeConstraints() {
-  const auto applyHeightConstraint = [this](QDockWidget *dock, int preferredHeight) {
-    if (!dock) {
-      return;
-    }
-
-    const bool shouldLock = !m_dockSeparatorDragActive && preferredHeight > 0 && dock->isVisible() &&
-                            !dock->isFloating() && dockWidgetArea(dock) == Qt::LeftDockWidgetArea;
-    if (shouldLock) {
-      dock->setMinimumHeight(preferredHeight);
-      dock->setMaximumHeight(preferredHeight);
-      return;
-    }
-
-    dock->setMinimumHeight(0);
-    dock->setMaximumHeight(QWIDGETSIZE_MAX);
-  };
-  const auto applyWidthConstraint = [this](QDockWidget *dock, int preferredWidth) {
-    if (!dock) {
-      return;
-    }
-
-    const bool shouldLock = !m_dockSeparatorDragActive && preferredWidth > 0 && dock->isVisible() &&
-                            !dock->isFloating() && dockWidgetArea(dock) == Qt::BottomDockWidgetArea;
-    if (shouldLock) {
-      dock->setMinimumWidth(preferredWidth);
-      dock->setMaximumWidth(preferredWidth);
-      return;
-    }
-
-    dock->setMinimumWidth(0);
-    dock->setMaximumWidth(QWIDGETSIZE_MAX);
+  const auto applyDockConstraint = [this](QDockWidget *dock, Qt::DockWidgetArea area, Qt::Orientation orientation,
+                                          int preferredSize) {
+    const bool shouldLock = !m_dockSeparatorDragActive && preferredSize > 0 && isVisibleDockInArea(this, dock, area);
+    setDockSizeConstraint(dock, orientation, shouldLock, preferredSize);
   };
 
-  applyHeightConstraint(m_rawfile_dock, m_rawFilePreferredHeight);
-  applyHeightConstraint(m_coll_view_dock, m_collViewPreferredHeight);
-  applyWidthConstraint(m_coll_view_dock, m_collViewPreferredBottomWidth);
+  applyDockConstraint(m_rawfile_dock, Qt::LeftDockWidgetArea, Qt::Vertical, m_rawFilePreferredHeight);
+  applyDockConstraint(m_coll_view_dock, Qt::LeftDockWidgetArea, Qt::Vertical, m_collViewPreferredHeight);
+  applyDockConstraint(m_coll_view_dock, Qt::BottomDockWidgetArea, Qt::Horizontal, m_collViewPreferredBottomWidth);
 }
 
 void MainWindow::applyDefaultDockLayout() {
