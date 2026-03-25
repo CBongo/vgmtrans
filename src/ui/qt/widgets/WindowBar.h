@@ -64,6 +64,7 @@ private:
   QWidget *m_centerWidget{};
   QWidget *m_leftCenterSpacer{};
   QWidget *m_rightCenterSpacer{};
+  QWidget *m_dockControlsSpacer{};
   QWidget *m_dockControls{};
   QToolButton *m_windowIconButton{};
   QWidget *m_rightControls{};
