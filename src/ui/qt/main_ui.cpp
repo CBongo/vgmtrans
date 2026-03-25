@@ -43,6 +43,16 @@ int main(int argc, char *argv[]) {
 
   VGMTransApplication app(argc, argv);
 
+#ifdef Q_OS_WIN
+  QFont font = app.font();
+  if (font.pointSizeF() > 0.0) {
+    font.setPointSizeF(font.pointSizeF() + 1.0);
+  } else if (font.pixelSize() > 0) {
+    font.setPixelSize(font.pixelSize() + 1);
+  }
+  app.setFont(font);
+#endif
+
   qtVGMRoot.init();
 
   QFontDatabase::addApplicationFont(":/fonts/Roboto_Mono/RobotoMono-VariableFont_wght.ttf");
