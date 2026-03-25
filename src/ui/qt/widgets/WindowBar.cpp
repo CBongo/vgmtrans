@@ -58,29 +58,6 @@ QIcon multiStateStencilIcon(const QString &iconPath, const QColor &normalColor,
   return icon;
 }
 
-QString menuBarStyleSheet(const QPalette &palette) {
-#if defined(Q_OS_WIN)
-  const bool darkPalette = isDarkPalette(palette);
-  QColor menuBarHoverFill = palette.color(QPalette::Text);
-  menuBarHoverFill.setAlpha(darkPalette ? 30 : 18);
-  QColor menuBarPressedFill = palette.color(QPalette::Text);
-  menuBarPressedFill.setAlpha(darkPalette ? 42 : 26);
-
-  return QStringLiteral(
-      "QMenuBar { background: transparent; border: none; }"
-      "QMenuBar::item { padding: 3px 8px; margin: 0px; background: transparent; }"
-      "QMenuBar::item:selected { background: %1; }"
-      "QMenuBar::item:pressed { background: %2; }"
-      "QMenu { padding: 4px 0px; }"
-      "QMenu::item { padding: 6px 12px; margin: 1px 4px; }"
-      "QMenu::item:selected { background: palette(highlight); color: palette(highlighted-text); }")
-      .arg(cssColor(menuBarHoverFill))
-      .arg(cssColor(menuBarPressedFill));
-#else
-  Q_UNUSED(palette);
-  return QStringLiteral("QMenuBar { background: transparent; border: none; }");
-#endif
-}
 }
 
 WindowBar::WindowBar(QWidget *parent) : QWidget(parent) {
@@ -234,7 +211,18 @@ void WindowBar::setMenuBarWidget(QWidget *widget) {
     widget->setParent(this);
     widget->setContentsMargins(0, 0, 0, 0);
     widget->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
-    widget->setStyleSheet(menuBarStyleSheet(palette()));
+#if defined(Q_OS_WIN)
+    widget->setStyleSheet(QStringLiteral(
+        "QMenuBar { background: transparent; border: none; }"
+        "QMenuBar::item { padding: 3px 8px; margin: 0px; background: transparent; }"
+        "QMenuBar::item:selected { background: palette(highlight); color: palette(highlighted-text); }"
+        "QMenuBar::item:pressed { background: palette(highlight); color: palette(highlighted-text); }"
+        "QMenu { padding: 4px 0px; }"
+        "QMenu::item { padding: 6px 12px; margin: 1px 4px; }"
+        "QMenu::item:selected { background: palette(highlight); color: palette(highlighted-text); }"));
+#else
+    widget->setStyleSheet(QStringLiteral("QMenuBar { background: transparent; border: none; }"));
+#endif
     widget->show();
   }
   updateResponsiveLayout();
@@ -312,9 +300,6 @@ void WindowBar::changeEvent(QEvent *event) {
 
   if (event->type() == QEvent::PaletteChange || event->type() == QEvent::ApplicationPaletteChange) {
     refreshDockToggleButtons();
-    if (m_menuBarWidget && m_menuBarWidget != m_menuBarPlaceholder) {
-      m_menuBarWidget->setStyleSheet(menuBarStyleSheet(palette()));
-    }
     applyWindowButtonStyle(m_windowIconButton, false, true);
     applyWindowButtonStyle(m_minimizeButton);
     applyWindowButtonStyle(m_maximizeButton);
