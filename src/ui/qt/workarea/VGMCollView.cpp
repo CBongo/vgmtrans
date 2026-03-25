@@ -53,18 +53,16 @@ public:
     itemOption.rect.adjust(indent, 0, 0, 0);
     QStyledItemDelegate::paint(painter, itemOption, index);
 
-    QColor lineColor = option.palette.color(QPalette::Mid);
-    lineColor.setAlpha(160);
-
     painter->save();
     painter->setRenderHint(QPainter::Antialiasing, false);
-    QPen pen(lineColor, 1);
+    QPen pen(option.palette.color(QPalette::Text), 1);
     pen.setCosmetic(true);
     painter->setPen(pen);
 
     const int branchX = rowRect.left() + indent / 2;
     const int centerY = rowRect.center().y();
-    const int branchEndX = itemOption.rect.left() + itemOption.decorationSize.width() / 2;
+    const int fullBranchEndX = itemOption.rect.left() + itemOption.decorationSize.width() / 2;
+    const int branchEndX = branchX + (fullBranchEndX - branchX) / 1.5;
     const int trunkEndY = index.data(VGMCollViewModel::IsLastFileRole).toBool() ? centerY : rowRect.bottom();
 
     painter->drawLine(branchX, rowRect.top(), branchX, trunkEndY);
@@ -228,9 +226,11 @@ VGMCollView::VGMCollView(QWidget *parent) : QWidget(parent) {
   m_listview = new QListView(this);
   m_listview->setAttribute(Qt::WA_MacShowFocusRect, false);
   m_listview->setIconSize(QSize(16, 16));
-  m_listview->setItemDelegate(new VGMCollTreeDelegate(ItemViewDensity::listItemHeight(m_listview), m_listview));
+  m_listview->setItemDelegate(new VGMCollTreeDelegate(
+      ItemViewDensity::listItemHeight(m_listview) + ItemViewDensity::listSpacing(m_listview), m_listview));
   m_listview->setContextMenuPolicy(Qt::CustomContextMenu);
   ItemViewDensity::apply(m_listview);
+  m_listview->setSpacing(0);
   layout->addWidget(m_listview);
 
   vgmCollViewModel = new VGMCollViewModel(this);
@@ -362,7 +362,6 @@ void VGMCollView::handleCurrentChanged(const QModelIndex &current, const QModelI
 
   if (vgmCollViewModel->isCollectionIndex(current)) {
     NotificationCenter::the()->selectVGMColl(vgmCollViewModel->coll(), this);
-    NotificationCenter::the()->selectVGMFile(nullptr, this);
     if ((hasFocus() || m_listview->hasFocus()) && vgmCollViewModel->coll()) {
       const QString name = QString{"<b>%1</b>"}.arg(QString::fromStdString(vgmCollViewModel->coll()->name()));
       const QIcon &icon = VGMCollIcon();
