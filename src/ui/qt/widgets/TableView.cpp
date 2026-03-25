@@ -5,7 +5,7 @@
 */
 
 #include "TableView.h"
-#include "ItemViewDelegate.h"
+#include "ItemViewDensity.h"
 #include <QHeaderView>
 
 TableView::TableView(QWidget *parent) : QTableView(parent) {
@@ -16,8 +16,7 @@ TableView::TableView(QWidget *parent) : QTableView(parent) {
   setWordWrap(false);
 
   verticalHeader()->hide();
-  setItemDelegate(new ItemViewDelegate(this));
-  ItemViewDelegate::apply(this);
+  ItemViewDensity::apply(this);
 
   setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
@@ -47,6 +46,11 @@ void TableView::setModel(QAbstractItemModel *model) {
     int columnWidth = std::max(90, textWidth + 15);
     setColumnWidth(lastSectionIdx, columnWidth);
   }
+}
+
+void TableView::setIconSize(const QSize &size) {
+  QTableView::setIconSize(size);
+  ItemViewDensity::apply(this);
 }
 
 void TableView::onHeaderSectionResized(int index, int oldSize, int newSize) {

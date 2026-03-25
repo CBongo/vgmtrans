@@ -11,6 +11,7 @@
 #include <VGMColl.h>
 #include <VGMExport.h>
 #include "SequencePlayer.h"
+#include "widgets/ItemViewDensity.h"
 #include "workarea/MdiArea.h"
 #include "QtVGMRoot.h"
 #include "services/MenuManager.h"
@@ -114,13 +115,13 @@ void VGMCollNameEditor::setModelData(QWidget *editor, QAbstractItemModel *model,
 VGMCollListView::VGMCollListView(QWidget *parent) : QListView(parent) {
   auto model = new VGMCollListViewModel(this);
   VGMCollListView::setModel(model);
-  setItemDelegate(new VGMCollNameEditor(this));
 
   setContextMenuPolicy(Qt::CustomContextMenu);
   setSelectionMode(QAbstractItemView::ExtendedSelection);
   setResizeMode(QListView::Adjust);
   setIconSize(QSize(16, 16));
-  ItemViewDelegate::apply(this);
+  setItemDelegate(new VGMCollNameEditor(ItemViewDensity::listItemHeight(this), this));
+  ItemViewDensity::apply(this);
   setWrapping(true);
 
 #ifdef Q_OS_MAC

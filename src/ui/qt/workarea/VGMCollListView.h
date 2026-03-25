@@ -8,7 +8,7 @@
 #include <QAbstractListModel>
 #include <QListView>
 #include <QKeyEvent>
-#include "ItemViewDelegate.h"
+#include "widgets/FixedHeightListDelegate.h"
 
 class VGMColl;
 class VGMFile;
@@ -27,9 +27,10 @@ private:
   bool isLoadingRawFile = false;
 };
 
-class VGMCollNameEditor : public ItemViewDelegate {
+class VGMCollNameEditor : public FixedHeightListDelegate {
 public:
-  explicit VGMCollNameEditor(QObject* parent = nullptr) : ItemViewDelegate(parent) {}
+  explicit VGMCollNameEditor(int itemHeight, QObject* parent = nullptr)
+      : FixedHeightListDelegate(itemHeight, parent) {}
 
 protected:
   void setEditorData(QWidget *editor, const QModelIndex &index) const override;

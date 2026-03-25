@@ -38,6 +38,7 @@
 #include "MenuBar.h"
 #include "PlaybackControls.h"
 #include "About.h"
+#include "widgets/ItemViewDensity.h"
 #include "Logger.h"
 #include "ManualCollectionDialog.h"
 #include "SequencePlayer.h"
@@ -267,7 +268,8 @@ void MainWindow::applyDefaultDockLayout() {
 
   const auto collListView = static_cast<VGMCollListView*>(m_coll_dock->widget());
   const auto scrollBarHeight = horizontalScrollBarReservedHeight(collListView);
-  const int fixedLeftDockHeight = Size::VTab + scrollBarHeight + (4.8 * Size::ItemViewRow);
+  const int fixedLeftDockHeight =
+      Size::VTab + scrollBarHeight + static_cast<int>(4.8 * ItemViewDensity::listItemStride(collListView));
 
   m_rawfile_dock->show();
   m_vgmfile_dock->show();
