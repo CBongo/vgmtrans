@@ -26,20 +26,11 @@ public:
     return Spacing::ItemView;
   }
 
-  static QFont itemViewFont() {
-    QFont font = QApplication::font("QTableView");
-    if (font.pointSizeF() <= 0.0 && font.pixelSize() <= 0) {
-      font = QApplication::font();
-    }
-    return font;
-  }
-
   static void apply(QListView *view) {
     if (!view) {
       return;
     }
 
-    view->setFont(itemViewFont());
     view->setSpacing(itemSpacing());
   }
 
@@ -48,7 +39,6 @@ public:
       return;
     }
 
-    view->setFont(itemViewFont());
     view->verticalHeader()->setDefaultSectionSize(itemHeight());
   }
 
