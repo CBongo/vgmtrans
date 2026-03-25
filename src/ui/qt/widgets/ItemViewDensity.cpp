@@ -15,9 +15,9 @@
 #include <QTableView>
 
 namespace {
-constexpr double kTablePaddingRatio = 0.28;
+constexpr double kTablePaddingRatio = 0.78;
 constexpr int kTablePaddingMin = 4;
-constexpr double kListPaddingRatio = 0.12;
+constexpr double kListPaddingRatio = 0.22;
 constexpr int kListPaddingMin = 2;
 constexpr double kListSpacingRatio = 0.03;
 
@@ -74,7 +74,6 @@ void apply(QListView* view) {
     return;
   }
 
-  view->setUniformItemSizes(true);
   view->setSpacing(listSpacing(view));
 }
 }
