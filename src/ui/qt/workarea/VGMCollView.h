@@ -18,13 +18,21 @@ class QListView;
 class VGMCollViewModel : public QAbstractListModel {
   Q_OBJECT
 public:
+  enum Role {
+    IsCollectionRole = Qt::UserRole,
+    IsLastFileRole,
+  };
+
   explicit VGMCollViewModel(QObject *parent = nullptr);
 
   int rowCount(const QModelIndex &parent = QModelIndex()) const override;
   QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
 
+  [[nodiscard]] VGMColl *coll() const { return m_coll; }
   [[nodiscard]] VGMFile *fileFromIndex(const QModelIndex& index) const;
   [[nodiscard]] QModelIndex indexFromFile(const VGMFile* file) const;
+  [[nodiscard]] bool isCollectionIndex(const QModelIndex& index) const;
+  [[nodiscard]] bool isLastFileIndex(const QModelIndex& index) const;
   bool containsVGMFile(const VGMFile* file) const;
 
 public slots:
