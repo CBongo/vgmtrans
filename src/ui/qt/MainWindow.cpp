@@ -30,6 +30,7 @@
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QTimer>
+#include <algorithm>
 #include <filesystem>
 #include <version.h>
 #include <QWKWidgets/widgetwindowagent.h>
@@ -264,21 +265,26 @@ void MainWindow::applyLeftDockHeightConstraints() {
 }
 
 void MainWindow::applyDefaultDockLayout() {
-  const int totalHeight = height();
-
-  const auto collListView = static_cast<VGMCollListView*>(m_coll_dock->widget());
-  const auto scrollBarHeight = horizontalScrollBarReservedHeight(collListView);
-  const int fixedLeftDockHeight =
-      Size::VTab + scrollBarHeight + static_cast<int>(4.8 * ItemViewDensity::listItemStride(collListView));
-
   m_rawfile_dock->show();
   m_vgmfile_dock->show();
   m_coll_dock->show();
   m_coll_view_dock->show();
   m_logger->show();
+  activateMainLayout();
+
+  const auto *collListView = qobject_cast<VGMCollListView *>(m_coll_dock ? m_coll_dock->widget() : nullptr);
+  if (!collListView) {
+    return;
+  }
+
+  const int scrollBarHeight = horizontalScrollBarReservedHeight(collListView);
+  const int fixedLeftDockHeight = Size::VTab + scrollBarHeight +
+      static_cast<int>(4.5 * ItemViewDensity::listItemStride(collListView));
+  const int availableLeftDockHeight = m_rawfile_dock->height() + m_vgmfile_dock->height() + m_coll_view_dock->height();
+  const int remainingLeftDockHeight = std::max(1, availableLeftDockHeight - (fixedLeftDockHeight * 2));
 
   resizeDocks({m_rawfile_dock, m_vgmfile_dock, m_coll_view_dock},
-              {fixedLeftDockHeight, totalHeight - (fixedLeftDockHeight * 2), fixedLeftDockHeight},
+              {fixedLeftDockHeight, remainingLeftDockHeight, fixedLeftDockHeight},
               Qt::Vertical);
   activateMainLayout();
 
