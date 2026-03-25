@@ -9,6 +9,8 @@
 #include <QIcon>
 #include <QWidget>
 #include <QScrollArea>
+#include <QScrollBar>
+#include <QStyle>
 #include <QGraphicsScene>
 #include <QGraphicsPixmapItem>
 #include <QPainter>
@@ -25,6 +27,19 @@ QScrollArea* getContainingScrollArea(const QWidget* widget) {
     }
   }
   return nullptr;
+}
+
+int horizontalScrollBarReservedHeight(const QAbstractScrollArea* area) {
+  const QScrollBar* hbar = area->horizontalScrollBar();
+
+  const int extent = hbar->sizeHint().height();
+  const int overlap = hbar->style()->pixelMetric(
+      QStyle::PM_ScrollView_ScrollBarOverlap,
+      nullptr,
+      hbar
+  );
+
+  return std::max(0, extent - overlap);
 }
 
 void applyEffectToPixmap(QPixmap &src, QPixmap &tgt, QGraphicsEffect *effect, int extent)

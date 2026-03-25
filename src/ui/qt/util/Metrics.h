@@ -8,7 +8,7 @@
 
 namespace Size {
   constexpr int VTab = 30;            // Tab Height
-  constexpr int ItemViewRow = 24;     // Shared row/item height for compact item views
+  constexpr int ItemViewRow = 22;     // Shared row/item height for compact item views
   constexpr int HeaderCheckbox = 11;  // Width/Height of checkbox appearing in a QHeaderView
 }
 

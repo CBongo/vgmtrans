@@ -14,12 +14,14 @@
 #include <QString>
 
 class QScrollArea;
+class QAbstractScrollArea;
 class QWidget;
 class QPixmap;
 class QGraphicsEffect;
 class VGMItem;
 
 QScrollArea* getContainingScrollArea(const QWidget* widget);
+int horizontalScrollBarReservedHeight(const QAbstractScrollArea* area);
 void applyEffectToPixmap(QPixmap& src, QPixmap& tgt, QGraphicsEffect* effect, int extent = 0);
 QIcon stencilSvgIcon(const QString &iconPath, const QColor &color);
 QIcon gradientStencilSvgIcon(const QString &iconPath, const QColor &startColor, const QColor &endColor,

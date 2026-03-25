@@ -264,7 +264,10 @@ void MainWindow::applyLeftDockHeightConstraints() {
 
 void MainWindow::applyDefaultDockLayout() {
   const int totalHeight = height();
-  constexpr int fixedLeftDockHeight = Size::VTab + (4.5 * Size::ItemViewRow);
+
+  const auto collListView = static_cast<VGMCollListView*>(m_coll_dock->widget());
+  const auto scrollBarHeight = horizontalScrollBarReservedHeight(collListView);
+  const int fixedLeftDockHeight = Size::VTab + scrollBarHeight + (4.8 * Size::ItemViewRow);
 
   m_rawfile_dock->show();
   m_vgmfile_dock->show();
