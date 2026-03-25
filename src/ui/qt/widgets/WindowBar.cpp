@@ -21,6 +21,7 @@ constexpr int kTitleBarHeight = 40;
 constexpr int kMacSystemButtonAreaWidth = 58;
 constexpr int kMacWindowBarLeftMargin = 14;
 constexpr int kMacWindowBarRightMargin = 10;
+constexpr int kDockControlsLeadingMargin = 18;
 constexpr int kTitleBarToggleButtonWidth = 30;
 constexpr int kTitleBarToggleButtonHeight = 25;
 constexpr int kTitleBarToggleIconSize = 19;
@@ -93,11 +94,11 @@ WindowBar::WindowBar(QWidget *parent) : QWidget(parent) {
   m_leftCenterSpacer = new QWidget(this);
   m_leftCenterSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
   m_rightCenterSpacer = new QWidget(this);
-  m_rightCenterSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+  m_rightCenterSpacer->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
   m_dockControls = new QWidget(this);
   auto *dockControlsLayout = new QHBoxLayout(m_dockControls);
-  dockControlsLayout->setContentsMargins(0, 8, 0, 7);
+  dockControlsLayout->setContentsMargins(kDockControlsLeadingMargin, 8, 0, 7);
   dockControlsLayout->setSpacing(4);
   m_dockControls->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 
@@ -105,20 +106,18 @@ WindowBar::WindowBar(QWidget *parent) : QWidget(parent) {
   m_systemButtonArea = new QWidget(this);
   m_systemButtonArea->setFixedSize(kMacSystemButtonAreaWidth, kTitleBarHeight - 4);
   m_layout->addWidget(m_systemButtonArea, 0, Qt::AlignBottom);
+  m_layout->addWidget(m_dockControls, 0, Qt::AlignVCenter);
   m_layout->addWidget(m_leftCenterSpacer);
   m_layout->addWidget(m_centerWidget, 0, Qt::AlignVCenter);
-  m_layout->addWidget(m_rightCenterSpacer);
-  m_layout->addWidget(m_dockControls, 0, Qt::AlignVCenter);
 #else
   m_windowIconButton = createWindowButton(QString());
   m_windowIconButton->setObjectName(QStringLiteral("windowIconButton"));
   applyWindowButtonStyle(m_windowIconButton, false, true);
   m_layout->addWidget(m_windowIconButton, 0, Qt::AlignVCenter);
   m_layout->addWidget(m_menuBarWidget, 0, Qt::AlignVCenter);
+  m_layout->addWidget(m_dockControls, 0, Qt::AlignVCenter);
   m_layout->addWidget(m_leftCenterSpacer);
   m_layout->addWidget(m_centerWidget, 0, Qt::AlignVCenter);
-  m_layout->addWidget(m_rightCenterSpacer);
-  m_layout->addWidget(m_dockControls, 0, Qt::AlignVCenter);
   m_layout->addSpacing(8);
 
   m_rightControls = new QWidget(this);
@@ -375,7 +374,6 @@ void WindowBar::updateResponsiveLayout() {
       (static_cast<qreal>(unusedFreeWidthWithDockControls) / std::max(1, availableWidth)) >= kFreeWidthThreshold;
 
   m_dockControls->setVisible(showDockControls);
-  m_rightCenterSpacer->setVisible(showDockControls);
 
   const int availableCenterWidth = std::max(0, availableWidth - (showDockControls ? dockControlsWidth : 0));
   const int desiredCenterWidth =
