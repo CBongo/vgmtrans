@@ -162,6 +162,7 @@ MainWindow::MainWindow() : QMainWindow(nullptr) {
   setAttribute(Qt::WA_ContentsMarginsRespectsSafeArea, false);
   setAcceptDrops(true);
   setContextMenuPolicy(Qt::NoContextMenu);
+  setDockOptions(QMainWindow::AnimatedDocks | QMainWindow::AllowNestedDocks);
 
   m_windowAgent = new QWK::WidgetWindowAgent(this);
   m_windowAgent->setup(this);
