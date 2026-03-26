@@ -60,9 +60,12 @@ private:
   void captureLeftDockAreaWidth();
   void captureBottomDockAreaHeight();
   void applyDockAreaTargets(bool applyLeftWidth, bool applyBottomHeight);
+  void captureCollectionContentsLeftDockHeight();
+  void applyPendingCollectionContentsBottomAreaHeight();
+  bool moveCollectionContentsToLeftDockIfNeeded();
+  bool moveCollectionContentsToBottomDockIfNeeded();
   bool normalizeCollectionContentsDockPlacement();
-  void prepareCollectionContentsForBottomDockShow();
-  void applyPendingCollectionContentsBottomHeight();
+  void syncDockLayoutState(bool persistState);
   void settleDockLayoutChange(bool applyAreaTargets);
   void updateCollectionContentsWidthLock();
   void scheduleDockStateUpdate();

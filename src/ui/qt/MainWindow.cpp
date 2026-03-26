@@ -32,6 +32,7 @@
 #include <QTimer>
 #include <algorithm>
 #include <filesystem>
+#include <utility>
 #include <version.h>
 #include <QWKWidgets/widgetwindowagent.h>
 #include "MainWindow.h"
@@ -168,6 +169,21 @@ QList<QDockWidget *> visibleDocksInAreaSorted(const QMainWindow *window,
   return visibleDocks;
 }
 
+template <typename Fn>
+void runWithUpdatesSuspended(QWidget *widget, Fn &&fn) {
+  const bool updatesWereEnabled = widget->updatesEnabled();
+  if (updatesWereEnabled) {
+    widget->setUpdatesEnabled(false);
+  }
+
+  std::forward<Fn>(fn)();
+
+  if (updatesWereEnabled) {
+    widget->setUpdatesEnabled(true);
+    widget->update();
+  }
+}
+
 QStringList retrievePortalDroppedFiles([[maybe_unused]] const QMimeData* mimeData) {
 #if defined(VGMTRANS_HAVE_DBUS) && defined(Q_OS_LINUX)
   if (!mimeData) {
@@ -283,7 +299,7 @@ void MainWindow::captureBottomDockAreaHeight() {
   }
 }
 
-void MainWindow::prepareCollectionContentsForBottomDockShow() {
+void MainWindow::captureCollectionContentsLeftDockHeight() {
   if (m_defaultDockState.isEmpty() || m_adjustingDockLayout) {
     return;
   }
@@ -299,7 +315,7 @@ void MainWindow::prepareCollectionContentsForBottomDockShow() {
   }
 }
 
-void MainWindow::applyPendingCollectionContentsBottomHeight() {
+void MainWindow::applyPendingCollectionContentsBottomAreaHeight() {
   if (m_pendingCollectionContentsBottomHeight <= 0 ||
       !isVisibleDockInArea(this, m_coll_view_dock, Qt::BottomDockWidgetArea)) {
     return;
@@ -309,6 +325,16 @@ void MainWindow::applyPendingCollectionContentsBottomHeight() {
   applyDockAreaTargets(false, true);
   activateMainLayout();
   m_pendingCollectionContentsBottomHeight = 0;
+}
+
+void MainWindow::syncDockLayoutState(bool persistState) {
+  activateMainLayout();
+  captureLeftDockAreaWidth();
+  captureBottomDockAreaHeight();
+  updateCollectionContentsWidthLock();
+  if (persistState) {
+    m_savedDockState = saveState(kDockLayoutStateVersion);
+  }
 }
 
 void MainWindow::applyDockAreaTargets(bool applyLeftWidth, bool applyBottomHeight) {
@@ -345,92 +371,106 @@ void MainWindow::applyDockAreaTargets(bool applyLeftWidth, bool applyBottomHeigh
   }
 }
 
+bool MainWindow::moveCollectionContentsToLeftDockIfNeeded() {
+  const auto leftAreaDocks =
+      std::initializer_list<QDockWidget *>{m_rawfile_dock, m_vgmfile_dock, m_coll_dock};
+  const auto allLeftAreaDocks =
+      std::initializer_list<QDockWidget *>{m_rawfile_dock, m_vgmfile_dock, m_coll_dock, m_coll_view_dock};
+  const auto bottomAreaDocks =
+      std::initializer_list<QDockWidget *>{m_coll_view_dock, m_coll_dock, m_logger};
+  const auto otherBottomAreaDocks =
+      std::initializer_list<QDockWidget *>{m_coll_dock, m_logger};
+
+  if (!hasVisibleDockInArea(this, allLeftAreaDocks, Qt::LeftDockWidgetArea) ||
+      !isLeftMostDockInArea(this, m_coll_view_dock, bottomAreaDocks, Qt::BottomDockWidgetArea) ||
+      hasVisibleDockInArea(this, otherBottomAreaDocks, Qt::BottomDockWidgetArea)) {
+    return false;
+  }
+
+  QList<QDockWidget *> leftDocks = visibleDocksInAreaSorted(this, leftAreaDocks, Qt::LeftDockWidgetArea,
+                                                            Qt::Vertical);
+  QDockWidget *anchorDock = leftDocks.isEmpty() ? nullptr : leftDocks.constLast();
+  if (!anchorDock) {
+    return false;
+  }
+
+  const int collViewHeight = m_coll_view_dock->height();
+  QList<int> leftDockHeights;
+  leftDockHeights.reserve(leftDocks.size() + 1);
+  for (QDockWidget *dock : leftDocks) {
+    leftDockHeights.append(dock->height());
+  }
+  leftDocks.append(m_coll_view_dock);
+  leftDockHeights.append(collViewHeight);
+
+  m_collectionContentsLeftDockHeight = collViewHeight;
+  m_pendingCollectionContentsBottomHeight = 0;
+  m_adjustingDockLayout = true;
+  m_coll_view_dock->setMinimumWidth(0);
+  m_coll_view_dock->setMaximumWidth(QWIDGETSIZE_MAX);
+  splitDockWidget(anchorDock, m_coll_view_dock, Qt::Vertical);
+  activateMainLayout();
+  resizeDocks(leftDocks, leftDockHeights, Qt::Vertical);
+  activateMainLayout();
+  m_adjustingDockLayout = false;
+  return true;
+}
+
+bool MainWindow::moveCollectionContentsToBottomDockIfNeeded() {
+  const auto leftAreaDocks =
+      std::initializer_list<QDockWidget *>{m_rawfile_dock, m_vgmfile_dock, m_coll_dock, m_coll_view_dock};
+  const auto bottomAreaDocks =
+      std::initializer_list<QDockWidget *>{m_coll_view_dock, m_coll_dock, m_logger};
+  const auto otherBottomAreaDocks =
+      std::initializer_list<QDockWidget *>{m_coll_dock, m_logger};
+
+  if (!isVisibleDockInArea(this, m_coll_view_dock, Qt::LeftDockWidgetArea) ||
+      bottomMostDockInArea(this, leftAreaDocks, Qt::LeftDockWidgetArea) != m_coll_view_dock ||
+      !hasVisibleDockInArea(this, otherBottomAreaDocks, Qt::BottomDockWidgetArea)) {
+    return false;
+  }
+
+  QDockWidget *anchorDock = leftMostDockInArea(this, otherBottomAreaDocks, Qt::BottomDockWidgetArea);
+  if (!anchorDock) {
+    return false;
+  }
+
+  const int collViewWidth = m_coll_view_dock->width();
+  const int collViewHeight =
+      m_collectionContentsLeftDockHeight > 0 ? m_collectionContentsLeftDockHeight : m_coll_view_dock->height();
+
+  m_pendingCollectionContentsBottomHeight = collViewHeight;
+  m_adjustingDockLayout = true;
+  m_coll_view_dock->setMinimumWidth(0);
+  m_coll_view_dock->setMaximumWidth(QWIDGETSIZE_MAX);
+  addDockWidget(Qt::BottomDockWidgetArea, m_coll_view_dock);
+  splitDockWidget(m_coll_view_dock, anchorDock, Qt::Horizontal);
+  activateMainLayout();
+
+  m_bottomDockAreaPreferredHeight = collViewHeight;
+  QList<QDockWidget *> bottomDocks;
+  QList<int> bottomDockHeights;
+  for (QDockWidget *dock : bottomAreaDocks) {
+    if (isVisibleDockInArea(this, dock, Qt::BottomDockWidgetArea)) {
+      bottomDocks.append(dock);
+      bottomDockHeights.append(collViewHeight);
+    }
+  }
+  if (!bottomDocks.isEmpty()) {
+    resizeDocks(bottomDocks, bottomDockHeights, Qt::Vertical);
+  }
+  resizeDocks({m_coll_view_dock}, {collViewWidth}, Qt::Horizontal);
+  activateMainLayout();
+  m_adjustingDockLayout = false;
+  return true;
+}
+
 bool MainWindow::normalizeCollectionContentsDockPlacement() {
   if (m_adjustingDockLayout || m_defaultDockState.isEmpty()) {
     return false;
   }
 
-  const bool hasLeftAreaDocks = hasVisibleDockInArea(
-      this,
-      {m_rawfile_dock, m_vgmfile_dock, m_coll_dock, m_coll_view_dock},
-      Qt::LeftDockWidgetArea);
-
-  if (hasLeftAreaDocks &&
-      isLeftMostDockInArea(this,
-                           m_coll_view_dock,
-                           {m_coll_view_dock, m_coll_dock, m_logger},
-                           Qt::BottomDockWidgetArea) &&
-      !hasVisibleDockInArea(this, {m_coll_dock, m_logger}, Qt::BottomDockWidgetArea)) {
-    QList<QDockWidget *> leftDocks = visibleDocksInAreaSorted(
-        this,
-        {m_rawfile_dock, m_vgmfile_dock, m_coll_dock},
-        Qt::LeftDockWidgetArea,
-        Qt::Vertical);
-    QDockWidget *anchorDock = leftDocks.isEmpty() ? nullptr : leftDocks.constLast();
-    if (!anchorDock) {
-      return false;
-    }
-
-    const int collViewHeight = m_coll_view_dock->height();
-    QList<int> leftDockHeights;
-    leftDockHeights.reserve(leftDocks.size() + 1);
-    for (QDockWidget *dock : leftDocks) {
-      leftDockHeights.append(dock->height());
-    }
-    leftDocks.append(m_coll_view_dock);
-    leftDockHeights.append(collViewHeight);
-    m_collectionContentsLeftDockHeight = collViewHeight;
-    m_pendingCollectionContentsBottomHeight = 0;
-    m_adjustingDockLayout = true;
-    m_coll_view_dock->setMinimumWidth(0);
-    m_coll_view_dock->setMaximumWidth(QWIDGETSIZE_MAX);
-    splitDockWidget(anchorDock, m_coll_view_dock, Qt::Vertical);
-    activateMainLayout();
-    resizeDocks(leftDocks, leftDockHeights, Qt::Vertical);
-    activateMainLayout();
-    m_adjustingDockLayout = false;
-    return true;
-  }
-
-  if (isVisibleDockInArea(this, m_coll_view_dock, Qt::LeftDockWidgetArea) &&
-      bottomMostDockInArea(this,
-                           {m_rawfile_dock, m_vgmfile_dock, m_coll_dock, m_coll_view_dock},
-                           Qt::LeftDockWidgetArea) == m_coll_view_dock &&
-      hasVisibleDockInArea(this, {m_coll_dock, m_logger}, Qt::BottomDockWidgetArea)) {
-    QDockWidget *anchorDock = leftMostDockInArea(this, {m_coll_dock, m_logger}, Qt::BottomDockWidgetArea);
-    if (!anchorDock) {
-      return false;
-    }
-
-    const int collViewWidth = m_coll_view_dock->width();
-    const int collViewHeight =
-        m_collectionContentsLeftDockHeight > 0 ? m_collectionContentsLeftDockHeight : m_coll_view_dock->height();
-    m_pendingCollectionContentsBottomHeight = collViewHeight;
-    m_adjustingDockLayout = true;
-    m_coll_view_dock->setMinimumWidth(0);
-    m_coll_view_dock->setMaximumWidth(QWIDGETSIZE_MAX);
-    addDockWidget(Qt::BottomDockWidgetArea, m_coll_view_dock);
-    splitDockWidget(m_coll_view_dock, anchorDock, Qt::Horizontal);
-    activateMainLayout();
-    m_bottomDockAreaPreferredHeight = collViewHeight;
-    QList<QDockWidget *> bottomDocks;
-    QList<int> bottomDockHeights;
-    for (QDockWidget *dock : std::initializer_list<QDockWidget *>{m_coll_view_dock, m_coll_dock, m_logger}) {
-      if (isVisibleDockInArea(this, dock, Qt::BottomDockWidgetArea)) {
-        bottomDocks.append(dock);
-        bottomDockHeights.append(collViewHeight);
-      }
-    }
-    if (!bottomDocks.isEmpty()) {
-      resizeDocks(bottomDocks, bottomDockHeights, Qt::Vertical);
-    }
-    resizeDocks({m_coll_view_dock}, {collViewWidth}, Qt::Horizontal);
-    activateMainLayout();
-    m_adjustingDockLayout = false;
-    return true;
-  }
-
-  return false;
+  return moveCollectionContentsToLeftDockIfNeeded() || moveCollectionContentsToBottomDockIfNeeded();
 }
 
 void MainWindow::settleDockLayoutChange(bool applyAreaTargets) {
@@ -442,26 +482,18 @@ void MainWindow::settleDockLayoutChange(bool applyAreaTargets) {
     return;
   }
 
-  const bool updatesWereEnabled = updatesEnabled();
-  if (updatesWereEnabled) {
-    setUpdatesEnabled(false);
-  }
-
-  activateMainLayout();
-  const bool normalizedCollectionContents = normalizeCollectionContentsDockPlacement();
-  const bool applyBottomHeight =
-      applyAreaTargets ||
-      (normalizedCollectionContents && isVisibleDockInArea(this, m_coll_view_dock, Qt::BottomDockWidgetArea));
-  if (applyAreaTargets || applyBottomHeight) {
-    applyDockAreaTargets(applyAreaTargets, applyBottomHeight);
-  }
-  updateCollectionContentsWidthLock();
-  activateMainLayout();
-
-  if (updatesWereEnabled) {
-    setUpdatesEnabled(true);
-    update();
-  }
+  runWithUpdatesSuspended(this, [this, applyAreaTargets]() {
+    activateMainLayout();
+    const bool normalizedCollectionContents = normalizeCollectionContentsDockPlacement();
+    const bool applyBottomHeight =
+        applyAreaTargets ||
+        (normalizedCollectionContents && isVisibleDockInArea(this, m_coll_view_dock, Qt::BottomDockWidgetArea));
+    if (applyAreaTargets || applyBottomHeight) {
+      applyDockAreaTargets(applyAreaTargets, applyBottomHeight);
+    }
+    updateCollectionContentsWidthLock();
+    activateMainLayout();
+  });
 
   scheduleDockStateUpdate();
 }
@@ -511,29 +543,19 @@ void MainWindow::scheduleDockStateUpdate() {
       return;
     }
 
-    const bool updatesWereEnabled = updatesEnabled();
-    if (updatesWereEnabled) {
-      setUpdatesEnabled(false);
-    }
-
-    activateMainLayout();
-    normalizeCollectionContentsDockPlacement();
-    activateMainLayout();
-    applyPendingCollectionContentsBottomHeight();
-    prepareCollectionContentsForBottomDockShow();
-    captureLeftDockAreaWidth();
-    captureBottomDockAreaHeight();
-    updateCollectionContentsWidthLock();
-    m_savedDockState = saveState(kDockLayoutStateVersion);
-
-    if (updatesWereEnabled) {
-      setUpdatesEnabled(true);
-      update();
-    }
+    runWithUpdatesSuspended(this, [this]() {
+      activateMainLayout();
+      normalizeCollectionContentsDockPlacement();
+      activateMainLayout();
+      applyPendingCollectionContentsBottomAreaHeight();
+      captureCollectionContentsLeftDockHeight();
+      syncDockLayoutState(true);
+    });
   });
 }
 
 void MainWindow::applyDefaultDockLayout() {
+  m_collectionContentsLeftDockHeight = 0;
   m_pendingCollectionContentsBottomHeight = 0;
   m_rawfile_dock->show();
   m_vgmfile_dock->show();
@@ -584,11 +606,7 @@ void MainWindow::resetDockLayout() {
   }
 
   applyDefaultDockLayout();
-  activateMainLayout();
-  captureLeftDockAreaWidth();
-  captureBottomDockAreaHeight();
-  updateCollectionContentsWidthLock();
-  m_savedDockState = saveState(kDockLayoutStateVersion);
+  syncDockLayoutState(true);
   saveLayoutSettings();
 }
 
@@ -709,12 +727,12 @@ void MainWindow::createElements() {
   }
   connect(m_coll_dock->toggleViewAction(), &QAction::toggled, this, [this](bool checked) {
     if (checked) {
-      prepareCollectionContentsForBottomDockShow();
+      captureCollectionContentsLeftDockHeight();
     }
   });
   connect(m_logger->toggleViewAction(), &QAction::toggled, this, [this](bool checked) {
     if (checked) {
-      prepareCollectionContentsForBottomDockShow();
+      captureCollectionContentsLeftDockHeight();
     }
   });
   m_windowBar = new WindowBar(this);
@@ -808,10 +826,7 @@ void MainWindow::showEvent(QShowEvent* event) {
 
     activateMainLayout();
     normalizeCollectionContentsDockPlacement();
-    activateMainLayout();
-    captureLeftDockAreaWidth();
-    captureBottomDockAreaHeight();
-    updateCollectionContentsWidthLock();
+    syncDockLayoutState(false);
   }
 
   updateDragOverlayGeometry();
