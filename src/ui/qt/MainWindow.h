@@ -87,7 +87,7 @@ private:
   QWidget *m_dragOverlay{};
   QWK::WidgetWindowAgent *m_windowAgent{};
   QByteArray m_defaultDockState{};
-  QByteArray m_preferredDockState{};
+  QByteArray m_savedDockState{};
   int m_leftDockAreaPreferredWidth{};
   int m_bottomDockAreaPreferredHeight{};
   bool m_dockSeparatorDragActive{};

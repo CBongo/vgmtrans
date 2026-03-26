@@ -166,7 +166,7 @@ MainWindow::MainWindow() : QMainWindow(nullptr) {
   if (const QByteArray geometry = Settings::the()->mainWindow.windowGeometry(); !geometry.isEmpty()) {
     restoreGeometry(geometry);
   }
-  m_preferredDockState = Settings::the()->mainWindow.dockState();
+  m_savedDockState = Settings::the()->mainWindow.dockState();
 
   auto infostring = QString("Running %1 (%4, %5), BASS %2, Qt %3")
                         .arg(VGMTRANS_VERSION,
@@ -246,7 +246,7 @@ void MainWindow::scheduleDockStateUpdate() {
     activateMainLayout();
     captureLeftDockAreaWidth();
     captureBottomDockAreaHeight();
-    m_preferredDockState = saveState(kDockLayoutStateVersion);
+    m_savedDockState = saveState(kDockLayoutStateVersion);
   });
 }
 
@@ -303,7 +303,7 @@ void MainWindow::resetDockLayout() {
   activateMainLayout();
   captureLeftDockAreaWidth();
   captureBottomDockAreaHeight();
-  m_preferredDockState = saveState(kDockLayoutStateVersion);
+  m_savedDockState = saveState(kDockLayoutStateVersion);
   saveLayoutSettings();
 }
 
@@ -318,8 +318,8 @@ void MainWindow::saveLayoutSettings() const {
       Settings::the()->mainWindow.setFloatingDockGeometry(dock->objectName(), dock->saveGeometry());
     }
   }
-  if (!m_preferredDockState.isEmpty()) {
-    Settings::the()->mainWindow.setDockState(m_preferredDockState);
+  if (!m_savedDockState.isEmpty()) {
+    Settings::the()->mainWindow.setDockState(m_savedDockState);
   } else {
     Settings::the()->mainWindow.clearDockState();
   }
@@ -498,14 +498,14 @@ void MainWindow::showEvent(QShowEvent* event) {
     applyDefaultDockLayout();
     m_defaultDockState = saveState(kDockLayoutStateVersion);
 
-    if (!m_preferredDockState.isEmpty() &&
-        !restoreState(m_preferredDockState, kDockLayoutStateVersion)) {
-      m_preferredDockState.clear();
+    if (!m_savedDockState.isEmpty() &&
+        !restoreState(m_savedDockState, kDockLayoutStateVersion)) {
+      m_savedDockState.clear();
     }
     showRestoredFloatingDocks();
 
-    if (m_preferredDockState.isEmpty()) {
-      m_preferredDockState = m_defaultDockState;
+    if (m_savedDockState.isEmpty()) {
+      m_savedDockState = m_defaultDockState;
     }
 
     activateMainLayout();
