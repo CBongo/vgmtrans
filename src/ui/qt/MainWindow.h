@@ -61,6 +61,9 @@ private:
   void captureBottomDockAreaHeight();
   void applyDockAreaTargets(bool applyLeftWidth, bool applyBottomHeight);
   bool normalizeCollectionContentsDockPlacement();
+  void prepareCollectionContentsForBottomDockShow();
+  void applyPendingCollectionContentsBottomHeight();
+  void settleDockLayoutChange(bool applyAreaTargets);
   void updateCollectionContentsWidthLock();
   void scheduleDockStateUpdate();
   void applyDefaultDockLayout();
@@ -90,6 +93,8 @@ private:
   QWK::WidgetWindowAgent *m_windowAgent{};
   QByteArray m_defaultDockState{};
   QByteArray m_savedDockState{};
+  int m_collectionContentsLeftDockHeight{};
+  int m_pendingCollectionContentsBottomHeight{};
   int m_leftDockAreaPreferredWidth{};
   int m_bottomDockAreaPreferredHeight{};
   bool m_adjustingDockLayout{};
