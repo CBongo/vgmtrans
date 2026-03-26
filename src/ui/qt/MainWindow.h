@@ -57,12 +57,10 @@ private:
   void createStatusBar();
   void routeSignals();
   void activateMainLayout();
-  void captureConstrainedDockSizes(bool onlyIfUnset);
-  void applyConstrainedDockPreferredSizes();
   void captureLeftDockAreaWidth();
   void captureBottomDockAreaHeight();
   void applyDockAreaTargets(bool applyLeftWidth, bool applyBottomHeight);
-  void scheduleDockStateUpdate(bool capturePreferredDockSizes);
+  void scheduleDockStateUpdate();
   void applyDefaultDockLayout();
   void showRestoredFloatingDocks();
   void resetDockLayout();
@@ -90,9 +88,6 @@ private:
   QWK::WidgetWindowAgent *m_windowAgent{};
   QByteArray m_defaultDockState{};
   QByteArray m_preferredDockState{};
-  int m_rawFilePreferredHeight{};
-  int m_collViewPreferredHeight{};
-  int m_collViewPreferredBottomWidth{};
   int m_leftDockAreaPreferredWidth{};
   int m_bottomDockAreaPreferredHeight{};
   bool m_dockSeparatorDragActive{};
