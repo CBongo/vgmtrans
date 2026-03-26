@@ -58,11 +58,11 @@ private:
   void routeSignals();
   void activateMainLayout();
   void captureConstrainedDockSizes(bool onlyIfUnset);
+  void applyConstrainedDockPreferredSizes();
   void captureLeftDockAreaWidth();
   void captureBottomDockAreaHeight();
   void applyDockAreaTargets(bool applyLeftWidth, bool applyBottomHeight);
   void scheduleDockStateUpdate(bool capturePreferredDockSizes);
-  void applyDockSizeConstraints();
   void applyDefaultDockLayout();
   void showRestoredFloatingDocks();
   void resetDockLayout();
