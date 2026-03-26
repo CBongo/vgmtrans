@@ -147,6 +147,27 @@ QDockWidget *bottomMostDockInArea(const QMainWindow *window, std::initializer_li
   return bottomMostDock;
 }
 
+QList<QDockWidget *> visibleDocksInAreaSorted(const QMainWindow *window,
+                                              std::initializer_list<QDockWidget *> docks,
+                                              Qt::DockWidgetArea area,
+                                              Qt::Orientation orientation) {
+  QList<QDockWidget *> visibleDocks;
+  for (QDockWidget *dock : docks) {
+    if (isVisibleDockInArea(window, dock, area)) {
+      visibleDocks.append(dock);
+    }
+  }
+
+  std::sort(visibleDocks.begin(), visibleDocks.end(), [orientation](QDockWidget *lhs, QDockWidget *rhs) {
+    if (orientation == Qt::Horizontal) {
+      return lhs->geometry().left() < rhs->geometry().left();
+    }
+    return lhs->geometry().top() < rhs->geometry().top();
+  });
+
+  return visibleDocks;
+}
+
 QStringList retrievePortalDroppedFiles([[maybe_unused]] const QMimeData* mimeData) {
 #if defined(VGMTRANS_HAVE_DBUS) && defined(Q_OS_LINUX)
   if (!mimeData) {
@@ -340,16 +361,24 @@ bool MainWindow::normalizeCollectionContentsDockPlacement() {
                            {m_coll_view_dock, m_coll_dock, m_logger},
                            Qt::BottomDockWidgetArea) &&
       !hasVisibleDockInArea(this, {m_coll_dock, m_logger}, Qt::BottomDockWidgetArea)) {
-    QDockWidget *anchorDock = bottomMostDockInArea(
+    QList<QDockWidget *> leftDocks = visibleDocksInAreaSorted(
         this,
         {m_rawfile_dock, m_vgmfile_dock, m_coll_dock},
-        Qt::LeftDockWidgetArea);
+        Qt::LeftDockWidgetArea,
+        Qt::Vertical);
+    QDockWidget *anchorDock = leftDocks.isEmpty() ? nullptr : leftDocks.constLast();
     if (!anchorDock) {
       return false;
     }
 
-    const int anchorHeight = anchorDock->height();
     const int collViewHeight = m_coll_view_dock->height();
+    QList<int> leftDockHeights;
+    leftDockHeights.reserve(leftDocks.size() + 1);
+    for (QDockWidget *dock : leftDocks) {
+      leftDockHeights.append(dock->height());
+    }
+    leftDocks.append(m_coll_view_dock);
+    leftDockHeights.append(collViewHeight);
     m_collectionContentsLeftDockHeight = collViewHeight;
     m_pendingCollectionContentsBottomHeight = 0;
     m_adjustingDockLayout = true;
@@ -357,7 +386,7 @@ bool MainWindow::normalizeCollectionContentsDockPlacement() {
     m_coll_view_dock->setMaximumWidth(QWIDGETSIZE_MAX);
     splitDockWidget(anchorDock, m_coll_view_dock, Qt::Vertical);
     activateMainLayout();
-    resizeDocks({anchorDock, m_coll_view_dock}, {anchorHeight, collViewHeight}, Qt::Vertical);
+    resizeDocks(leftDocks, leftDockHeights, Qt::Vertical);
     activateMainLayout();
     m_adjustingDockLayout = false;
     return true;
