@@ -262,11 +262,11 @@ void MainWindow::applyDefaultDockLayout() {
       horizontalScrollBarReservedHeight(m_coll_listview) +
       static_cast<int>(4.5 * ItemViewDensity::listItemStride(m_coll_listview));
 
-  resizeDocks({m_rawfile_dock, m_vgmfile_dock}, {30, 70}, Qt::Vertical);
+  resizeDocks({m_rawfile_dock, m_vgmfile_dock}, {26, 74}, Qt::Vertical);
   resizeDocks({m_coll_dock, m_coll_view_dock, m_logger},
               {bottomDockAreaHeight, bottomDockAreaHeight, bottomDockAreaHeight},
               Qt::Vertical);
-  resizeDocks({m_coll_dock, m_coll_view_dock}, {75, 25}, Qt::Horizontal);
+  resizeDocks({m_coll_dock, m_coll_view_dock}, {68, 32}, Qt::Horizontal);
   activateMainLayout();
   m_logger->hide();
 }
@@ -354,12 +354,15 @@ void MainWindow::createElements() {
   m_vgmfile_dock = new QDockWidget("Detected Files");
   m_vgmfile_dock->setObjectName(QStringLiteral("vgmFileListDock"));
   m_vgmfile_dock->setAllowedAreas(Qt::LeftDockWidgetArea);
-  m_vgmfile_dock->setWidget(new VGMFileListView());
+  auto* vgmfileListView = new VGMFileListView();
+  vgmfileListView->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+  m_vgmfile_dock->setWidget(vgmfileListView);
   m_vgmfile_dock->setContentsMargins(0, 0, 0, 0);
   installTitleBar(m_vgmfile_dock, "Detected Files", TitleBar::HideButton);
 
   m_coll_listview = new VGMCollListView();
   m_coll_view = new VGMCollView();
+  m_coll_listview->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Ignored);
   m_playback_controls = new PlaybackControls();
 
   auto *central_wrapper = new QWidget(this);
