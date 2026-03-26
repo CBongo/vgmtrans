@@ -60,6 +60,7 @@ private:
   void captureLeftDockAreaWidth();
   void captureBottomDockAreaHeight();
   void applyDockAreaTargets(bool applyLeftWidth, bool applyBottomHeight);
+  bool normalizeCollectionContentsDockPlacement();
   void updateCollectionContentsWidthLock();
   void scheduleDockStateUpdate();
   void applyDefaultDockLayout();
@@ -91,5 +92,6 @@ private:
   QByteArray m_savedDockState{};
   int m_leftDockAreaPreferredWidth{};
   int m_bottomDockAreaPreferredHeight{};
+  bool m_adjustingDockLayout{};
   bool m_dockSeparatorDragActive{};
 };

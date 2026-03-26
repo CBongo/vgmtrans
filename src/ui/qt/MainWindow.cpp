@@ -119,6 +119,34 @@ bool isLeftMostDockInArea(const QMainWindow *window, QDockWidget *dock, std::ini
   return dock->geometry().left() == leftMostX;
 }
 
+QDockWidget *leftMostDockInArea(const QMainWindow *window, std::initializer_list<QDockWidget *> docks,
+                                Qt::DockWidgetArea area) {
+  QDockWidget *leftMostDock = nullptr;
+  for (QDockWidget *dock : docks) {
+    if (!isVisibleDockInArea(window, dock, area)) {
+      continue;
+    }
+    if (!leftMostDock || dock->geometry().left() < leftMostDock->geometry().left()) {
+      leftMostDock = dock;
+    }
+  }
+  return leftMostDock;
+}
+
+QDockWidget *bottomMostDockInArea(const QMainWindow *window, std::initializer_list<QDockWidget *> docks,
+                                  Qt::DockWidgetArea area) {
+  QDockWidget *bottomMostDock = nullptr;
+  for (QDockWidget *dock : docks) {
+    if (!isVisibleDockInArea(window, dock, area)) {
+      continue;
+    }
+    if (!bottomMostDock || dock->geometry().bottom() > bottomMostDock->geometry().bottom()) {
+      bottomMostDock = dock;
+    }
+  }
+  return bottomMostDock;
+}
+
 QStringList retrievePortalDroppedFiles([[maybe_unused]] const QMimeData* mimeData) {
 #if defined(VGMTRANS_HAVE_DBUS) && defined(Q_OS_LINUX)
   if (!mimeData) {
@@ -268,6 +296,74 @@ void MainWindow::applyDockAreaTargets(bool applyLeftWidth, bool applyBottomHeigh
   }
 }
 
+bool MainWindow::normalizeCollectionContentsDockPlacement() {
+  if (m_adjustingDockLayout) {
+    return false;
+  }
+
+  const bool hasLeftAreaDocks = hasVisibleDockInArea(
+      this,
+      {m_rawfile_dock, m_vgmfile_dock, m_coll_dock, m_coll_view_dock},
+      Qt::LeftDockWidgetArea);
+
+  if (hasLeftAreaDocks &&
+      isLeftMostDockInArea(this,
+                           m_coll_view_dock,
+                           {m_coll_view_dock, m_coll_dock, m_logger},
+                           Qt::BottomDockWidgetArea) &&
+      !hasVisibleDockInArea(this, {m_coll_dock, m_logger}, Qt::BottomDockWidgetArea)) {
+    QDockWidget *anchorDock = bottomMostDockInArea(
+        this,
+        {m_rawfile_dock, m_vgmfile_dock, m_coll_dock},
+        Qt::LeftDockWidgetArea);
+    if (!anchorDock) {
+      return false;
+    }
+
+    const int anchorHeight = anchorDock->height();
+    const int collViewHeight = m_coll_view_dock->height();
+    m_adjustingDockLayout = true;
+    m_coll_view_dock->setMinimumWidth(0);
+    m_coll_view_dock->setMaximumWidth(QWIDGETSIZE_MAX);
+    splitDockWidget(anchorDock, m_coll_view_dock, Qt::Vertical);
+    activateMainLayout();
+    resizeDocks({anchorDock, m_coll_view_dock}, {anchorHeight, collViewHeight}, Qt::Vertical);
+    activateMainLayout();
+    m_adjustingDockLayout = false;
+    return true;
+  }
+
+  if (isVisibleDockInArea(this, m_coll_view_dock, Qt::LeftDockWidgetArea) &&
+      bottomMostDockInArea(this,
+                           {m_rawfile_dock, m_vgmfile_dock, m_coll_dock, m_coll_view_dock},
+                           Qt::LeftDockWidgetArea) == m_coll_view_dock &&
+      hasVisibleDockInArea(this, {m_coll_dock, m_logger}, Qt::BottomDockWidgetArea)) {
+    QDockWidget *anchorDock = leftMostDockInArea(this, {m_coll_dock, m_logger}, Qt::BottomDockWidgetArea);
+    if (!anchorDock) {
+      return false;
+    }
+
+    const int collViewWidth = m_coll_view_dock->width();
+    const int collViewHeight = m_coll_view_dock->height();
+    const int anchorWidth = anchorDock->width();
+    m_adjustingDockLayout = true;
+    m_coll_view_dock->setMinimumWidth(0);
+    m_coll_view_dock->setMaximumWidth(QWIDGETSIZE_MAX);
+    addDockWidget(Qt::BottomDockWidgetArea, m_coll_view_dock);
+    splitDockWidget(m_coll_view_dock, anchorDock, Qt::Horizontal);
+    activateMainLayout();
+    resizeDocks({m_coll_view_dock, m_coll_dock, m_logger},
+                {collViewHeight, collViewHeight, collViewHeight},
+                Qt::Vertical);
+    resizeDocks({m_coll_view_dock, anchorDock}, {collViewWidth, anchorWidth}, Qt::Horizontal);
+    activateMainLayout();
+    m_adjustingDockLayout = false;
+    return true;
+  }
+
+  return false;
+}
+
 void MainWindow::updateCollectionContentsWidthLock() {
   constexpr int kUnlockedMinimumWidth = 0;
   constexpr int kUnlockedMaximumWidth = QWIDGETSIZE_MAX;
@@ -305,6 +401,12 @@ void MainWindow::updateCollectionContentsWidthLock() {
 void MainWindow::scheduleDockStateUpdate() {
   // Defer until the current dock/layout change finishes so we capture the settled user layout.
   QTimer::singleShot(0, this, [this]() {
+    if (m_adjustingDockLayout) {
+      return;
+    }
+
+    activateMainLayout();
+    normalizeCollectionContentsDockPlacement();
     activateMainLayout();
     captureLeftDockAreaWidth();
     captureBottomDockAreaHeight();
@@ -578,6 +680,8 @@ void MainWindow::showEvent(QShowEvent* event) {
       m_savedDockState = m_defaultDockState;
     }
 
+    activateMainLayout();
+    normalizeCollectionContentsDockPlacement();
     activateMainLayout();
     captureLeftDockAreaWidth();
     captureBottomDockAreaHeight();
