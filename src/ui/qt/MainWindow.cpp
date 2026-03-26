@@ -572,7 +572,7 @@ void MainWindow::applyDefaultDockLayout() {
   resizeDocks({m_coll_view_dock, m_coll_dock, m_logger},
               {bottomDockAreaHeight, bottomDockAreaHeight, bottomDockAreaHeight},
               Qt::Vertical);
-  resizeDocks({m_coll_view_dock, m_coll_dock}, {32, 68}, Qt::Horizontal);
+  resizeDocks({m_coll_view_dock, m_coll_dock, m_logger}, {27, 38, 35}, Qt::Horizontal);
   activateMainLayout();
   m_logger->hide();
 }
