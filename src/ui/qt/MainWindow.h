@@ -96,5 +96,4 @@ private:
   int m_leftDockAreaPreferredWidth{};
   int m_bottomDockAreaPreferredHeight{};
   bool m_dockSeparatorDragActive{};
-  int m_dockResizeSyncGeneration{};
 };

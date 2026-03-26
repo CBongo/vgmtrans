@@ -393,7 +393,6 @@ void MainWindow::resetDockLayout() {
     return;
   }
 
-  ++m_dockResizeSyncGeneration;
   m_dockSeparatorDragActive = false;
   m_rawFilePreferredHeight = 0;
   m_collViewPreferredHeight = 0;
@@ -808,7 +807,6 @@ void MainWindow::resizeEvent(QResizeEvent *event) {
   const bool heightChanged = event->oldSize().height() >= 0 && event->size().height() != event->oldSize().height();
   const bool widthExpanded = event->oldSize().width() >= 0 && event->size().width() > event->oldSize().width();
   const bool heightExpanded = event->oldSize().height() >= 0 && event->size().height() > event->oldSize().height();
-  const int syncGeneration = ++m_dockResizeSyncGeneration;
 
   QMainWindow::resizeEvent(event);
   updateDragOverlayGeometry();
@@ -817,19 +815,9 @@ void MainWindow::resizeEvent(QResizeEvent *event) {
     return;
   }
 
-  // Defer until QMainWindow finishes its resize layout pass before replaying the preferred dock sizes.
-  QTimer::singleShot(0, this, [this, syncGeneration, widthExpanded, heightExpanded]() {
-    if (syncGeneration != m_dockResizeSyncGeneration) {
-      return;
-    }
-
-    if ((widthExpanded || heightExpanded) && !m_preferredDockState.isEmpty()) {
-      restoreState(m_preferredDockState, kDockLayoutStateVersion);
-    }
-    applyDockAreaTargets(widthExpanded, heightExpanded);
-    applyConstrainedDockPreferredSizes();
-    activateMainLayout();
-  });
+  applyDockAreaTargets(widthExpanded, heightExpanded);
+  applyConstrainedDockPreferredSizes();
+  activateMainLayout();
 }
 
 void MainWindow::updateDragOverlayAppearance() {
