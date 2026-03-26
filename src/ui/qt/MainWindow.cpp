@@ -30,6 +30,7 @@
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QTimer>
+#include <algorithm>
 #include <filesystem>
 #include <version.h>
 #include <QWKWidgets/widgetwindowagent.h>
@@ -69,6 +70,16 @@ bool isVisibleDockInArea(const QMainWindow *window, QDockWidget *dock, Qt::DockW
   return dock && dock->isVisible() && !dock->isFloating() && window->dockWidgetArea(dock) == area;
 }
 
+bool hasVisibleDockInArea(const QMainWindow *window, std::initializer_list<QDockWidget *> docks,
+                          Qt::DockWidgetArea area) {
+  for (QDockWidget *dock : docks) {
+    if (isVisibleDockInArea(window, dock, area)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 QDockWidget *firstVisibleDockInArea(const QMainWindow *window, std::initializer_list<QDockWidget *> docks,
                                     Qt::DockWidgetArea area) {
   for (QDockWidget *dock : docks) {
@@ -89,6 +100,23 @@ int firstVisibleDockSizeInArea(const QMainWindow *window, std::initializer_list<
     return dockSizeForOrientation(dock, orientation);
   }
   return 0;
+}
+
+bool isLeftMostDockInArea(const QMainWindow *window, QDockWidget *dock, std::initializer_list<QDockWidget *> docks,
+                          Qt::DockWidgetArea area) {
+  if (!isVisibleDockInArea(window, dock, area)) {
+    return false;
+  }
+
+  int leftMostX = dock->geometry().left();
+  for (QDockWidget *candidate : docks) {
+    if (!isVisibleDockInArea(window, candidate, area)) {
+      continue;
+    }
+    leftMostX = std::min(leftMostX, candidate->geometry().left());
+  }
+
+  return dock->geometry().left() == leftMostX;
 }
 
 QStringList retrievePortalDroppedFiles([[maybe_unused]] const QMimeData* mimeData) {
@@ -240,12 +268,47 @@ void MainWindow::applyDockAreaTargets(bool applyLeftWidth, bool applyBottomHeigh
   }
 }
 
+void MainWindow::updateCollectionContentsWidthLock() {
+  constexpr int kUnlockedMinimumWidth = 0;
+  constexpr int kUnlockedMaximumWidth = QWIDGETSIZE_MAX;
+
+  const bool shouldLockWidth =
+      hasVisibleDockInArea(this,
+                           {m_rawfile_dock, m_vgmfile_dock, m_coll_dock, m_coll_view_dock},
+                           Qt::LeftDockWidgetArea) &&
+      isLeftMostDockInArea(this,
+                           m_coll_view_dock,
+                           {m_coll_view_dock, m_coll_dock, m_logger},
+                           Qt::BottomDockWidgetArea);
+
+  if (!shouldLockWidth) {
+    m_coll_view_dock->setMinimumWidth(kUnlockedMinimumWidth);
+    m_coll_view_dock->setMaximumWidth(kUnlockedMaximumWidth);
+    return;
+  }
+
+  const int targetWidth = firstVisibleDockSizeInArea(
+      this,
+      {m_rawfile_dock, m_vgmfile_dock, m_coll_dock, m_coll_view_dock},
+      Qt::LeftDockWidgetArea,
+      Qt::Horizontal);
+  if (targetWidth <= 0) {
+    m_coll_view_dock->setMinimumWidth(kUnlockedMinimumWidth);
+    m_coll_view_dock->setMaximumWidth(kUnlockedMaximumWidth);
+    return;
+  }
+
+  m_coll_view_dock->setMinimumWidth(targetWidth);
+  m_coll_view_dock->setMaximumWidth(targetWidth);
+}
+
 void MainWindow::scheduleDockStateUpdate() {
   // Defer until the current dock/layout change finishes so we capture the settled user layout.
   QTimer::singleShot(0, this, [this]() {
     activateMainLayout();
     captureLeftDockAreaWidth();
     captureBottomDockAreaHeight();
+    updateCollectionContentsWidthLock();
     m_savedDockState = saveState(kDockLayoutStateVersion);
   });
 }
@@ -263,10 +326,10 @@ void MainWindow::applyDefaultDockLayout() {
       static_cast<int>(4.5 * ItemViewDensity::listItemStride(m_coll_listview));
 
   resizeDocks({m_rawfile_dock, m_vgmfile_dock}, {26, 74}, Qt::Vertical);
-  resizeDocks({m_coll_dock, m_coll_view_dock, m_logger},
+  resizeDocks({m_coll_view_dock, m_coll_dock, m_logger},
               {bottomDockAreaHeight, bottomDockAreaHeight, bottomDockAreaHeight},
               Qt::Vertical);
-  resizeDocks({m_coll_dock, m_coll_view_dock}, {68, 32}, Qt::Horizontal);
+  resizeDocks({m_coll_view_dock, m_coll_dock}, {32, 68}, Qt::Horizontal);
   activateMainLayout();
   m_logger->hide();
 }
@@ -303,6 +366,7 @@ void MainWindow::resetDockLayout() {
   activateMainLayout();
   captureLeftDockAreaWidth();
   captureBottomDockAreaHeight();
+  updateCollectionContentsWidthLock();
   m_savedDockState = saveState(kDockLayoutStateVersion);
   saveLayoutSettings();
 }
@@ -329,7 +393,7 @@ void MainWindow::createElements() {
   setDocumentMode(true);
   setTabPosition(Qt::BottomDockWidgetArea, QTabWidget::North);
   setCorner(Qt::TopLeftCorner, Qt::LeftDockWidgetArea);
-  setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
+  setCorner(Qt::BottomLeftCorner, Qt::BottomDockWidgetArea);
   setCorner(Qt::BottomRightCorner, Qt::BottomDockWidgetArea);
 
   const auto installTitleBar = [this](QDockWidget *dock, const QString& title,
@@ -362,7 +426,6 @@ void MainWindow::createElements() {
 
   m_coll_listview = new VGMCollListView();
   m_coll_view = new VGMCollView();
-  m_coll_listview->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Ignored);
   m_playback_controls = new PlaybackControls();
 
   auto *central_wrapper = new QWidget(this);
@@ -399,10 +462,10 @@ void MainWindow::createElements() {
   if (TitleBar *loggerTitleBar = installTitleBar(m_logger, "Logs", TitleBar::HideButton)) {
     m_logger->installTitleBarControls(loggerTitleBar);
   }
-  addDockWidget(Qt::BottomDockWidgetArea, m_coll_dock);
+  addDockWidget(Qt::BottomDockWidgetArea, m_coll_view_dock);
   // Keep the bottom docks in a side-by-side layout so each dock preserves its own width.
-  splitDockWidget(m_coll_dock, m_coll_view_dock, Qt::Horizontal);
-  splitDockWidget(m_coll_view_dock, m_logger, Qt::Horizontal);
+  splitDockWidget(m_coll_view_dock, m_coll_dock, Qt::Horizontal);
+  splitDockWidget(m_coll_dock, m_logger, Qt::Horizontal);
 
   const QList<QDockWidget *> viewMenuDocks{
       m_vgmfile_dock, m_coll_dock, m_coll_view_dock, m_rawfile_dock, m_logger,
@@ -417,9 +480,13 @@ void MainWindow::createElements() {
             [this](Qt::DockWidgetArea) { scheduleDockStateUpdate(); });
     connect(dock, &QDockWidget::topLevelChanged, this, [this](bool floating) {
       if (!floating) {
-        QTimer::singleShot(0, this, [this]() { applyDockAreaTargets(true, true); });
+        QTimer::singleShot(0, this, [this]() {
+          applyDockAreaTargets(true, true);
+          scheduleDockStateUpdate();
+        });
+      } else {
+        scheduleDockStateUpdate();
       }
-      scheduleDockStateUpdate();
     });
   }
   m_windowBar = new WindowBar(this);
@@ -514,6 +581,7 @@ void MainWindow::showEvent(QShowEvent* event) {
     activateMainLayout();
     captureLeftDockAreaWidth();
     captureBottomDockAreaHeight();
+    updateCollectionContentsWidthLock();
   }
 
   updateDragOverlayGeometry();
@@ -550,6 +618,10 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
     if (mouseEvent->button() == Qt::LeftButton && widget && (widget == this || isAncestorOf(widget)) &&
         isDockSeparatorCursor(cursor().shape())) {
       m_dockSeparatorDragActive = true;
+    }
+  } else if (event->type() == QEvent::MouseMove) {
+    if (m_dockSeparatorDragActive) {
+      QTimer::singleShot(0, this, [this]() { updateCollectionContentsWidthLock(); });
     }
   } else if (event->type() == QEvent::MouseButtonRelease) {
     auto *mouseEvent = static_cast<QMouseEvent *>(event);
@@ -709,6 +781,7 @@ void MainWindow::resizeEvent(QResizeEvent *event) {
   }
 
   applyDockAreaTargets(widthExpanded, heightExpanded);
+  updateCollectionContentsWidthLock();
   activateMainLayout();
 }
 

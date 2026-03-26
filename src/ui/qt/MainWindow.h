@@ -60,6 +60,7 @@ private:
   void captureLeftDockAreaWidth();
   void captureBottomDockAreaHeight();
   void applyDockAreaTargets(bool applyLeftWidth, bool applyBottomHeight);
+  void updateCollectionContentsWidthLock();
   void scheduleDockStateUpdate();
   void applyDefaultDockLayout();
   void showRestoredFloatingDocks();
