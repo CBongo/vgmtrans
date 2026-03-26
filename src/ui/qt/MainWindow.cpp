@@ -759,10 +759,6 @@ void MainWindow::createElements() {
 }
 
 void MainWindow::configureWindowAgent() {
-  if (!m_windowAgent || !m_windowBar) {
-    return;
-  }
-
   m_windowAgent->setTitleBar(m_windowBar);
   if (QWidget *dockControls = m_windowBar->dockControls()) {
     m_windowAgent->setHitTestVisible(dockControls, true);
@@ -776,10 +772,8 @@ void MainWindow::configureWindowAgent() {
 
 #if defined(Q_OS_MACOS) || defined(Q_OS_MAC)
   m_windowAgent->setWindowAttribute(QStringLiteral("no-system-buttons"), false);
-  if (QWidget *systemButtonArea = m_windowBar->systemButtonArea()) {
-    m_windowAgent->setSystemButtonArea(systemButtonArea);
-  }
   setMenuWidget(m_windowBar);
+  m_windowAgent->setSystemButtonArea(m_windowBar->systemButtonArea());
 #else
   if (m_windowBar->windowIconButton()) {
     QAbstractButton *windowIconButton = m_windowBar->windowIconButton();
@@ -830,6 +824,15 @@ void MainWindow::showEvent(QShowEvent* event) {
   }
 
   updateDragOverlayGeometry();
+
+#if defined(Q_OS_MACOS) || defined(Q_OS_MAC)
+  QTimer::singleShot(0, this, [this]() {
+    // QMainWindow repositions the menu widget during startup, so rebind the
+    // traffic-light anchor once after show to pick up the final rect.
+    m_windowAgent->setSystemButtonArea(nullptr);
+    m_windowAgent->setSystemButtonArea(m_windowBar->systemButtonArea());
+  });
+#endif
 }
 
 void MainWindow::routeSignals() {
