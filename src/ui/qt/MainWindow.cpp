@@ -300,7 +300,7 @@ void MainWindow::captureBottomDockAreaHeight() {
 }
 
 void MainWindow::captureCollectionContentsLeftDockHeight() {
-  if (m_defaultDockState.isEmpty() || m_adjustingDockLayout) {
+  if (m_defaultDockState.isEmpty() || m_adjustingDockLayout || m_closingDown) {
     return;
   }
 
@@ -316,7 +316,7 @@ void MainWindow::captureCollectionContentsLeftDockHeight() {
 }
 
 void MainWindow::applyPendingCollectionContentsBottomAreaHeight() {
-  if (m_pendingCollectionContentsBottomHeight <= 0 ||
+  if (m_closingDown || m_pendingCollectionContentsBottomHeight <= 0 ||
       !isVisibleDockInArea(this, m_coll_view_dock, Qt::BottomDockWidgetArea)) {
     return;
   }
@@ -466,7 +466,7 @@ bool MainWindow::moveCollectionContentsToBottomDockIfNeeded() {
 }
 
 bool MainWindow::normalizeCollectionContentsDockPlacement() {
-  if (m_adjustingDockLayout || m_defaultDockState.isEmpty()) {
+  if (m_adjustingDockLayout || m_defaultDockState.isEmpty() || m_closingDown) {
     return false;
   }
 
@@ -474,7 +474,7 @@ bool MainWindow::normalizeCollectionContentsDockPlacement() {
 }
 
 void MainWindow::settleDockLayoutChange(bool applyAreaTargets) {
-  if (m_defaultDockState.isEmpty()) {
+  if (m_defaultDockState.isEmpty() || m_closingDown) {
     return;
   }
 
@@ -533,13 +533,13 @@ void MainWindow::updateCollectionContentsWidthLock() {
 }
 
 void MainWindow::scheduleDockStateUpdate() {
-  if (m_defaultDockState.isEmpty()) {
+  if (m_defaultDockState.isEmpty() || m_closingDown) {
     return;
   }
 
   // Defer until the current dock/layout change finishes so we capture the settled user layout.
   QTimer::singleShot(0, this, [this]() {
-    if (m_adjustingDockLayout || m_defaultDockState.isEmpty()) {
+    if (m_adjustingDockLayout || m_defaultDockState.isEmpty() || m_closingDown) {
       return;
     }
 
@@ -927,6 +927,9 @@ void MainWindow::dropEvent(QDropEvent *event) {
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
+  m_closingDown = true;
+  m_dockSeparatorDragActive = false;
+  m_savedDockState = saveState(kDockLayoutStateVersion);
   saveLayoutSettings();
   QMainWindow::closeEvent(event);
 }
