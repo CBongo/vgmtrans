@@ -31,6 +31,10 @@ namespace {
 
 constexpr int FLUSH_INTERVAL_MS = 500;
 constexpr int FLUSH_MESSAGE_THRESHOLD = 5000;
+constexpr int kAccessoryButtonWidth = 22;
+constexpr int kAccessoryButtonHeight = 20;
+constexpr int kAccessoryIconSize = 16;
+constexpr int kFilterButtonLeftMargin = 6;
 
 QString filterButtonText(int level) {
   switch (level) {
@@ -133,28 +137,16 @@ void Logger::installTitleBarControls(TitleBar *titleBar) {
 
   const auto addIconButton = [titleBar](const QString &toolTip) {
     auto *button = new QToolButton(titleBar);
-    button->setAutoRaise(true);
-    button->setFocusPolicy(Qt::NoFocus);
-    button->setCursor(Qt::ArrowCursor);
-    button->setToolButtonStyle(Qt::ToolButtonIconOnly);
-    button->setToolTip(toolTip);
-    button->setFixedSize(22, 20);
-    button->setIconSize(QSize(16, 16));
+    configureToolButton(button, toolTip, QSize(kAccessoryButtonWidth, kAccessoryButtonHeight),
+                        QSize(kAccessoryIconSize, kAccessoryIconSize));
     titleBar->addLeadingWidget(button);
     return button;
   };
 
   m_filterButton = new QToolButton(titleBar);
-  m_filterButton->setAutoRaise(true);
-  m_filterButton->setFocusPolicy(Qt::NoFocus);
-  m_filterButton->setCursor(Qt::ArrowCursor);
-  m_filterButton->setToolButtonStyle(Qt::ToolButtonTextOnly);
+  configureToolButton(m_filterButton, QStringLiteral("Log level"), QSize(), QSize(), true);
   m_filterButton->setPopupMode(QToolButton::InstantPopup);
-  m_filterButton->setToolTip(QStringLiteral("Log level"));
   m_filterButton->setText(filterButtonText(m_level));
-  QFont font = m_filterButton->font();
-  font.setPointSizeF(font.pointSizeF());
-  m_filterButton->setFont(font);
   m_filterButton->setMinimumWidth(m_filterButton->fontMetrics().horizontalAdvance(filterButtonText(LOG_LEVEL_WARN)));
 
   auto *filterMenu = new QMenu(m_filterButton);
@@ -196,7 +188,9 @@ void Logger::exportLog() {
   }
 
   QSaveFile log(path);
-  log.open(QIODevice::WriteOnly);
+  if (!log.open(QIODevice::WriteOnly)) {
+    return;
+  }
 
   QByteArray out_buf;
   out_buf.append(logger_textarea->toPlainText().toUtf8());
@@ -230,25 +224,17 @@ void Logger::refreshTitleBarControls() {
   }
 
   const QPalette palette = m_titleBar->palette();
-  const QColor buttonColor = toolBarButtonIconColor(palette);
-  const QString buttonStyle = toolBarButtonStyle(palette);
 
   if (m_filterButton) {
-    m_filterButton->setStyleSheet(
-        QStringLiteral(
-            "QToolButton { border: none; background: transparent; padding: 0px; margin: 0px 0px 0px 6px; color: %1; }"
-            "QToolButton::menu-indicator { image: none; width: 0px; }")
-            .arg(cssColor(buttonColor)));
+    m_filterButton->setStyleSheet(toolBarTextButtonStyle(palette, kFilterButtonLeftMargin));
   }
 
   if (m_clearButton) {
-    m_clearButton->setStyleSheet(buttonStyle);
-    m_clearButton->setIcon(stencilSvgIcon(QStringLiteral(":/icons/trash-can-outline.svg"), buttonColor));
+    refreshStencilToolButton(m_clearButton, QStringLiteral(":/icons/trash-can-outline.svg"), palette);
   }
 
   if (m_exportButton) {
-    m_exportButton->setStyleSheet(buttonStyle);
-    m_exportButton->setIcon(stencilSvgIcon(QStringLiteral(":/icons/export.svg"), buttonColor));
+    refreshStencilToolButton(m_exportButton, QStringLiteral(":/icons/export.svg"), palette);
   }
 }
 

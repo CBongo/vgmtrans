@@ -35,13 +35,8 @@ TitleBar::TitleBar(const QString& title, Buttons buttons, QWidget *parent) : QWi
   titleLayout->addWidget(titleLabel);
   const auto makeButton = [this](const QString& toolTip) {
     auto *button = new QToolButton(this);
-    button->setAutoRaise(true);
-    button->setFocusPolicy(Qt::NoFocus);
-    button->setToolTip(toolTip);
-    button->setCursor(Qt::ArrowCursor);
-    button->setToolButtonStyle(Qt::ToolButtonIconOnly);
-    button->setFixedSize(kTitleBarButtonWidth, kTitleBarButtonHeight);
-    button->setIconSize(QSize(kTitleBarIconSize, kTitleBarIconSize));
+    configureToolButton(button, toolTip, QSize(kTitleBarButtonWidth, kTitleBarButtonHeight),
+                        QSize(kTitleBarIconSize, kTitleBarIconSize));
     return button;
   };
 
@@ -127,17 +122,12 @@ bool TitleBar::eventFilter(QObject *watched, QEvent *event) {
 }
 
 void TitleBar::updateButtonStyles() {
-  const auto style = toolBarButtonStyle(palette());
-  const auto color = toolBarButtonIconColor(palette());
-
   if (m_newButton) {
-    m_newButton->setStyleSheet(style);
-    m_newButton->setIcon(stencilSvgIcon(QStringLiteral(":/icons/plus.svg"), color));
+    refreshStencilToolButton(m_newButton, QStringLiteral(":/icons/plus.svg"), palette());
   }
 
   if (m_hideButton) {
-    m_hideButton->setStyleSheet(style);
-    m_hideButton->setIcon(stencilSvgIcon(QStringLiteral(":/icons/minus.svg"), color));
+    refreshStencilToolButton(m_hideButton, QStringLiteral(":/icons/minus.svg"), palette());
   }
 }
 

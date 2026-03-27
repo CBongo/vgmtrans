@@ -93,8 +93,6 @@ WindowBar::WindowBar(QWidget *parent) : QWidget(parent) {
   m_centerWidget = m_centerPlaceholder;
   m_leftCenterSpacer = new QWidget(this);
   m_leftCenterSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-  m_rightCenterSpacer = new QWidget(this);
-  m_rightCenterSpacer->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
   m_dockControlsSpacer = new QWidget(this);
   m_dockControlsSpacer->setFixedWidth(kDockControlsLeadingGap);
   m_dockControlsSpacer->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
@@ -258,13 +256,9 @@ void WindowBar::setDockToggleButtons(const QList<ToggleButtonSpec> &buttons) {
 
     auto *button = new QToolButton(m_dockControls);
     button->setDefaultAction(spec.action);
-    button->setAutoRaise(true);
-    button->setCheckable(true);
-    button->setFocusPolicy(Qt::NoFocus);
-    button->setCursor(Qt::ArrowCursor);
-    button->setToolButtonStyle(Qt::ToolButtonIconOnly);
-    button->setFixedSize(kTitleBarToggleButtonWidth, kTitleBarToggleButtonHeight);
-    button->setIconSize(QSize(kTitleBarToggleIconSize, kTitleBarToggleIconSize));
+    configureToolButton(button, spec.action->toolTip(),
+                        QSize(kTitleBarToggleButtonWidth, kTitleBarToggleButtonHeight),
+                        QSize(kTitleBarToggleIconSize, kTitleBarToggleIconSize));
     dockControlsLayout->addWidget(button);
     connect(spec.action, &QAction::changed, this, [this]() { refreshDockToggleButtons(); });
 
@@ -441,10 +435,7 @@ void WindowBar::applyWindowButtonStyle(QToolButton *button, bool closeButton, bo
 
 QToolButton *WindowBar::createWindowButton(const QString& toolTip) {
   auto *button = new QToolButton(this);
-  button->setAutoRaise(true);
-  button->setFocusPolicy(Qt::NoFocus);
-  button->setToolTip(toolTip);
-  button->setCursor(Qt::ArrowCursor);
+  configureToolButton(button, toolTip);
 
 #if defined(Q_OS_WIN) || defined(Q_OS_LINUX)
   button->setFixedHeight(kTitleBarHeight);
@@ -463,13 +454,8 @@ QToolButton *WindowBar::createWindowButton(const QString& toolTip) {
 }
 
 void WindowBar::refreshDockToggleButtons() {
-  const QString style = toolBarButtonStyle(palette(), true);
   for (const auto &entry : m_dockToggleButtons) {
-    if (!entry.button) {
-      continue;
-    }
-    entry.button->setStyleSheet(style);
-    entry.button->setIcon(stencilSvgIcon(entry.iconPath, toolBarButtonIconColor(palette(), entry.button->isEnabled())));
+    refreshStencilToolButton(entry.button, entry.iconPath, palette(), true);
   }
 }
 

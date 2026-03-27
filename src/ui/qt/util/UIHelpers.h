@@ -11,10 +11,12 @@
 #include <QColor>
 #include <QIcon>
 #include <QPalette>
+#include <QSize>
 #include <QString>
 
 class QScrollArea;
 class QAbstractScrollArea;
+class QToolButton;
 class QWidget;
 class QPixmap;
 class QGraphicsEffect;
@@ -29,8 +31,13 @@ QIcon gradientStencilSvgIcon(const QString &iconPath, const QColor &startColor, 
 QString cssColor(const QColor &color);
 QColor blendColors(const QColor &foreground, const QColor &background, qreal foregroundWeight);
 bool isDarkPalette(const QPalette &palette);
+void configureToolButton(QToolButton *button, const QString &toolTip, const QSize &buttonSize = QSize(),
+                         const QSize &iconSize = QSize(), bool textOnly = false);
 QString toolBarButtonStyle(const QPalette &palette, bool checkable = false);
 QColor toolBarButtonIconColor(const QPalette &palette, bool enabled = true);
+void refreshStencilToolButton(QToolButton *button, const QString &iconPath, const QPalette &palette,
+                              bool checkable = false);
+QString toolBarTextButtonStyle(const QPalette &palette, int leftMargin = 0);
 
 std::filesystem::path openSaveDirDialog();
 std::filesystem::path openSaveFileDialog(const std::filesystem::path& suggested_filename, const std::string& extension);

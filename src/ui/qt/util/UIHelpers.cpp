@@ -10,6 +10,7 @@
 #include <QWidget>
 #include <QScrollArea>
 #include <QScrollBar>
+#include <QToolButton>
 #include <QStyle>
 #include <QGraphicsScene>
 #include <QGraphicsPixmapItem>
@@ -87,6 +88,27 @@ bool isDarkPalette(const QPalette &palette) {
   return palette.color(QPalette::Window).lightnessF() < 0.5;
 }
 
+void configureToolButton(QToolButton *button, const QString &toolTip, const QSize &buttonSize,
+                         const QSize &iconSize, bool textOnly) {
+  if (!button) {
+    return;
+  }
+
+  button->setAutoRaise(true);
+  button->setFocusPolicy(Qt::NoFocus);
+  button->setToolTip(toolTip);
+  button->setCursor(Qt::ArrowCursor);
+  button->setToolButtonStyle(textOnly ? Qt::ToolButtonTextOnly : Qt::ToolButtonIconOnly);
+
+  if (buttonSize.isValid()) {
+    button->setFixedSize(buttonSize);
+  }
+
+  if (iconSize.isValid()) {
+    button->setIconSize(iconSize);
+  }
+}
+
 QString toolBarButtonStyle(const QPalette &palette, bool checkable) {
   const bool darkPalette = isDarkPalette(palette);
   QColor hoverFill = palette.color(QPalette::Text);
@@ -122,6 +144,24 @@ QColor toolBarButtonIconColor(const QPalette &palette, bool enabled) {
   const QColor textColor =
       enabled ? palette.color(QPalette::Text) : palette.color(QPalette::Disabled, QPalette::Text);
   return blendColors(textColor, windowColor, enabled ? (darkPalette ? 0.72 : 0.56) : (darkPalette ? 0.6 : 0.46));
+}
+
+void refreshStencilToolButton(QToolButton *button, const QString &iconPath, const QPalette &palette,
+                              bool checkable) {
+  if (!button) {
+    return;
+  }
+
+  button->setStyleSheet(toolBarButtonStyle(palette, checkable));
+  button->setIcon(stencilSvgIcon(iconPath, toolBarButtonIconColor(palette, button->isEnabled())));
+}
+
+QString toolBarTextButtonStyle(const QPalette &palette, int leftMargin) {
+  return QStringLiteral(
+      "QToolButton { border: none; background: transparent; padding: 0px; margin: 0px 0px 0px %1px; color: %2; }"
+      "QToolButton::menu-indicator { image: none; width: 0px; }")
+      .arg(leftMargin)
+      .arg(cssColor(toolBarButtonIconColor(palette)));
 }
 
 std::filesystem::path openSaveDirDialog() {
