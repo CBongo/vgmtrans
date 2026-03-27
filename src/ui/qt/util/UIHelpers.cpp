@@ -68,6 +68,22 @@ QIcon gradientStencilSvgIcon(const QString &iconPath, const QColor &startColor, 
   return QIcon(new TintableSvgIconEngine(iconPath, startColor, endColor, angleDegrees));
 }
 
+QPixmap tintedIconPixmap(const QIcon &icon, const QSize &size, const QColor &color, qreal devicePixelRatio) {
+  if (size.isEmpty()) {
+    return {};
+  }
+
+  QPixmap pixmap = icon.pixmap(size, std::max(devicePixelRatio, qreal(1.0)));
+  if (pixmap.isNull()) {
+    return pixmap;
+  }
+
+  QPainter painter(&pixmap);
+  painter.setCompositionMode(QPainter::CompositionMode_SourceIn);
+  painter.fillRect(pixmap.rect(), color);
+  return pixmap;
+}
+
 QString cssColor(const QColor &color) {
   return QStringLiteral("rgba(%1, %2, %3, %4)")
       .arg(color.red())
