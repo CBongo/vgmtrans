@@ -147,6 +147,9 @@ void Logger::installTitleBarControls(TitleBar *titleBar) {
   configureToolButton(m_filterButton, QStringLiteral("Log level"), QSize(), QSize(), true);
   m_filterButton->setPopupMode(QToolButton::InstantPopup);
   m_filterButton->setText(filterButtonText(m_level));
+  QFont font = m_filterButton->font();
+  font.setPointSizeF(font.pointSizeF() + 0.10);
+  m_filterButton->setFont(font);
   m_filterButton->setMinimumWidth(m_filterButton->fontMetrics().horizontalAdvance(filterButtonText(LOG_LEVEL_WARN)));
 
   auto *filterMenu = new QMenu(m_filterButton);
