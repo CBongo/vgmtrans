@@ -131,7 +131,7 @@ QString toolBarButtonStyle(const QPalette &palette, bool checkable) {
 
   if (checkable) {
     QColor checkedFill = palette.color(QPalette::Text);
-    checkedFill.setAlpha(darkPalette ? 38 : 28);
+    checkedFill.setAlpha(darkPalette ? 38 : 33);
     style += QStringLiteral("QToolButton:checked { background: %1; }").arg(cssColor(checkedFill));
   }
 
