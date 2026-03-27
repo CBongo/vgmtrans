@@ -300,7 +300,7 @@ void MainWindow::captureBottomDockAreaHeight() {
 }
 
 void MainWindow::captureCollectionContentsLeftDockHeight() {
-  if (m_defaultDockState.isEmpty() || m_adjustingDockLayout || m_closingDown) {
+  if (m_defaultDockState.isEmpty() || m_adjustingDockLayout || m_restoringDockState || m_closingDown) {
     return;
   }
 
@@ -316,7 +316,7 @@ void MainWindow::captureCollectionContentsLeftDockHeight() {
 }
 
 void MainWindow::applyPendingCollectionContentsBottomAreaHeight() {
-  if (m_closingDown || m_pendingCollectionContentsBottomHeight <= 0 ||
+  if (m_restoringDockState || m_closingDown || m_pendingCollectionContentsBottomHeight <= 0 ||
       !isVisibleDockInArea(this, m_coll_view_dock, Qt::BottomDockWidgetArea)) {
     return;
   }
@@ -466,7 +466,7 @@ bool MainWindow::moveCollectionContentsToBottomDockIfNeeded() {
 }
 
 bool MainWindow::normalizeCollectionContentsDockPlacement() {
-  if (m_adjustingDockLayout || m_defaultDockState.isEmpty() || m_closingDown) {
+  if (m_adjustingDockLayout || m_defaultDockState.isEmpty() || m_restoringDockState || m_closingDown) {
     return false;
   }
 
@@ -474,7 +474,7 @@ bool MainWindow::normalizeCollectionContentsDockPlacement() {
 }
 
 void MainWindow::settleDockLayoutChange(bool applyAreaTargets) {
-  if (m_defaultDockState.isEmpty() || m_closingDown) {
+  if (m_defaultDockState.isEmpty() || m_restoringDockState || m_closingDown) {
     return;
   }
 
@@ -533,13 +533,13 @@ void MainWindow::updateCollectionContentsWidthLock() {
 }
 
 void MainWindow::scheduleDockStateUpdate() {
-  if (m_defaultDockState.isEmpty() || m_closingDown) {
+  if (m_defaultDockState.isEmpty() || m_restoringDockState || m_closingDown) {
     return;
   }
 
   // Defer until the current dock/layout change finishes so we capture the settled user layout.
   QTimer::singleShot(0, this, [this]() {
-    if (m_adjustingDockLayout || m_defaultDockState.isEmpty() || m_closingDown) {
+    if (m_adjustingDockLayout || m_defaultDockState.isEmpty() || m_restoringDockState || m_closingDown) {
       return;
     }
 
@@ -805,6 +805,7 @@ void MainWindow::showEvent(QShowEvent* event) {
   QMainWindow::showEvent(event);
 
   if (m_defaultDockState.isEmpty()) {
+    m_restoringDockState = true;
     applyDefaultDockLayout();
     m_defaultDockState = saveState(kDockLayoutStateVersion);
 
@@ -818,8 +819,7 @@ void MainWindow::showEvent(QShowEvent* event) {
       m_savedDockState = m_defaultDockState;
     }
 
-    activateMainLayout();
-    normalizeCollectionContentsDockPlacement();
+    m_restoringDockState = false;
     syncDockLayoutState(false);
   }
 

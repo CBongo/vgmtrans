@@ -101,6 +101,7 @@ private:
   int m_leftDockAreaPreferredWidth{};
   int m_bottomDockAreaPreferredHeight{};
   bool m_adjustingDockLayout{};
+  bool m_restoringDockState{};
   bool m_closingDown{};
   bool m_dockSeparatorDragActive{};
 };
