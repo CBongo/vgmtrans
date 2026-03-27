@@ -41,6 +41,7 @@ protected:
 signals:
   void hideRequested();
   void addRequested();
+  void appearanceChanged();
 
 private:
   void updateButtonStyles();

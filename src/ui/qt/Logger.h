@@ -36,14 +36,18 @@ private:
   void createElements();
   void connectElements();
   void flushPending();
+  void refreshTitleBarControls();
 
   struct PendingMessage {
     QString text;
     LogLevel level;
   };
 
+  TitleBar *m_titleBar{};
   QPlainTextEdit *logger_textarea;
   QToolButton *m_filterButton{};
+  QToolButton *m_clearButton{};
+  QToolButton *m_exportButton{};
 
   int m_level;
   QTimer *m_flushTimer;

@@ -129,9 +129,9 @@ void Logger::installTitleBarControls(TitleBar *titleBar) {
     return;
   }
 
-  const QColor buttonColor = toolBarButtonIconColor(titleBar->palette());
-  const QString buttonStyle = toolBarButtonStyle(titleBar->palette());
-  const auto addIconButton = [titleBar, &buttonColor, &buttonStyle](const QString &iconPath, const QString &toolTip) {
+  m_titleBar = titleBar;
+
+  const auto addIconButton = [titleBar](const QString &toolTip) {
     auto *button = new QToolButton(titleBar);
     button->setAutoRaise(true);
     button->setFocusPolicy(Qt::NoFocus);
@@ -140,8 +140,6 @@ void Logger::installTitleBarControls(TitleBar *titleBar) {
     button->setToolTip(toolTip);
     button->setFixedSize(22, 20);
     button->setIconSize(QSize(16, 16));
-    button->setStyleSheet(buttonStyle);
-    button->setIcon(stencilSvgIcon(iconPath, buttonColor));
     titleBar->addLeadingWidget(button);
     return button;
   };
@@ -154,13 +152,8 @@ void Logger::installTitleBarControls(TitleBar *titleBar) {
   m_filterButton->setPopupMode(QToolButton::InstantPopup);
   m_filterButton->setToolTip(QStringLiteral("Log level"));
   m_filterButton->setText(filterButtonText(m_level));
-  m_filterButton->setStyleSheet(
-      QStringLiteral(
-          "QToolButton { border: none; background: transparent; padding: 0px; margin: 0px 0px 0px 6px; color: %1; }"
-          "QToolButton::menu-indicator { image: none; width: 0px; }")
-          .arg(cssColor(buttonColor)));
   QFont font = m_filterButton->font();
-  font.setPointSizeF(font.pointSizeF() + 0.25);
+  font.setPointSizeF(font.pointSizeF());
   m_filterButton->setFont(font);
   m_filterButton->setMinimumWidth(m_filterButton->fontMetrics().horizontalAdvance(filterButtonText(LOG_LEVEL_WARN)));
 
@@ -179,15 +172,16 @@ void Logger::installTitleBarControls(TitleBar *titleBar) {
   m_filterButton->setMenu(filterMenu);
   titleBar->addLeadingWidget(m_filterButton);
 
-  if (QToolButton *clearButton = addIconButton(QStringLiteral(":/icons/trash-can-outline.svg"), QStringLiteral("Clear All"))) {
-    connect(clearButton, &QToolButton::clicked, this, &Logger::clearLog);
-  }
+  m_clearButton = addIconButton(QStringLiteral("Clear All"));
+  connect(m_clearButton, &QToolButton::clicked, this, &Logger::clearLog);
   auto *buttonSpacer = new QWidget(titleBar);
   buttonSpacer->setFixedWidth(6);
   titleBar->addLeadingWidget(buttonSpacer);
-  if (QToolButton *exportButton = addIconButton(QStringLiteral(":/icons/export.svg"), QStringLiteral("Export Log"))) {
-    connect(exportButton, &QToolButton::clicked, this, &Logger::exportLog);
-  }
+  m_exportButton = addIconButton(QStringLiteral("Export Log"));
+  connect(m_exportButton, &QToolButton::clicked, this, &Logger::exportLog);
+
+  connect(titleBar, &TitleBar::appearanceChanged, this, &Logger::refreshTitleBarControls);
+  refreshTitleBarControls();
 }
 
 void Logger::exportLog() {
@@ -227,6 +221,34 @@ void Logger::setLevel(int level) {
     for (QAction *action : filterMenu->actions()) {
       action->setChecked(action->data().toInt() == level);
     }
+  }
+}
+
+void Logger::refreshTitleBarControls() {
+  if (!m_titleBar) {
+    return;
+  }
+
+  const QPalette palette = m_titleBar->palette();
+  const QColor buttonColor = toolBarButtonIconColor(palette);
+  const QString buttonStyle = toolBarButtonStyle(palette);
+
+  if (m_filterButton) {
+    m_filterButton->setStyleSheet(
+        QStringLiteral(
+            "QToolButton { border: none; background: transparent; padding: 0px; margin: 0px 0px 0px 6px; color: %1; }"
+            "QToolButton::menu-indicator { image: none; width: 0px; }")
+            .arg(cssColor(buttonColor)));
+  }
+
+  if (m_clearButton) {
+    m_clearButton->setStyleSheet(buttonStyle);
+    m_clearButton->setIcon(stencilSvgIcon(QStringLiteral(":/icons/trash-can-outline.svg"), buttonColor));
+  }
+
+  if (m_exportButton) {
+    m_exportButton->setStyleSheet(buttonStyle);
+    m_exportButton->setIcon(stencilSvgIcon(QStringLiteral(":/icons/export.svg"), buttonColor));
   }
 }
 

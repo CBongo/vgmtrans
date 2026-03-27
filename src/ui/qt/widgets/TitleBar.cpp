@@ -21,6 +21,7 @@ namespace {
 constexpr int kTitleBarButtonWidth = 22;
 constexpr int kTitleBarButtonHeight = 20;
 constexpr int kTitleBarIconSize = 16;
+constexpr int kTitleToLeadingControlsGap = 12;
 }
 
 TitleBar::TitleBar(const QString& title, Buttons buttons, QWidget *parent) : QWidget(parent) {
@@ -46,15 +47,16 @@ TitleBar::TitleBar(const QString& title, Buttons buttons, QWidget *parent) : QWi
 
   if (buttons.testFlag(NewButton)) {
     m_newButton = makeButton("New collection");
-    titleLayout->addSpacing(4);
+    titleLayout->addSpacing(kTitleToLeadingControlsGap);
     titleLayout->addWidget(m_newButton);
     connect(m_newButton, &QToolButton::clicked, this, &TitleBar::addRequested);
   }
 
   m_leadingContainer = new QWidget(this);
   m_leadingLayout = new QHBoxLayout(m_leadingContainer);
-  m_leadingLayout->setContentsMargins(0, 0, 0, 0);
+  m_leadingLayout->setContentsMargins(kTitleToLeadingControlsGap, 0, 0, 0);
   m_leadingLayout->setSpacing(1);
+  m_leadingContainer->hide();
   titleLayout->addWidget(m_leadingContainer);
   titleLayout->addStretch(1);
 
@@ -102,6 +104,7 @@ void TitleBar::addLeadingWidget(QWidget *widget) {
   }
   widget->setParent(m_leadingContainer);
   m_leadingLayout->addWidget(widget);
+  m_leadingContainer->show();
 }
 
 void TitleBar::changeEvent(QEvent *event) {
@@ -109,6 +112,7 @@ void TitleBar::changeEvent(QEvent *event) {
 
   if (event->type() == QEvent::PaletteChange || event->type() == QEvent::ApplicationPaletteChange) {
     updateButtonStyles();
+    emit appearanceChanged();
   }
 }
 
