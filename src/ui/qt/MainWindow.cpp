@@ -799,6 +799,7 @@ void MainWindow::configureWindowAgent() {
 
 void MainWindow::createStatusBar() {
   statusBarContent = new StatusBarContent;
+  statusBar()->setSizeGripEnabled(false);
   statusBar()->setMaximumHeight(statusBarContent->maximumHeight());
   statusBar()->addPermanentWidget(statusBarContent, 1);
 }
