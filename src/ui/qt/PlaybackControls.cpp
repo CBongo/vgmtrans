@@ -109,7 +109,7 @@ void PlaybackControls::setupControls() {
 
   connect(NotificationCenter::the(), &NotificationCenter::vgmCollSelected, this,
           [this](VGMColl *coll, QWidget *) {
-            m_play->setEnabled(coll != nullptr);
+            m_hasSelectedCollection = coll != nullptr;
             playerStatusChanged(SequencePlayer::the().playing());
           });
   connect(&SequencePlayer::the(), &SequencePlayer::statusChange, this, &PlaybackControls::playerStatusChanged);
@@ -168,8 +168,10 @@ void PlaybackControls::playbackRangeUpdate(int cur, int max, PositionChangeOrigi
 void PlaybackControls::playerStatusChanged(bool playing) {
   m_skipNextPlaybackSliderUpdate = false;
   const bool hasActive = SequencePlayer::the().activeCollection() != nullptr;
-  const bool canPlay = m_play->isEnabled();
+  const bool canPlay = m_hasSelectedCollection || hasActive;
   const bool darkPalette = isDarkPalette(palette());
+
+  m_play->setEnabled(canPlay);
 
   QColor playColor = darkPalette ? kDarkPlayColor : kLightPlayColor;
   if (!(playing || canPlay)) {

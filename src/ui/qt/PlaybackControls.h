@@ -41,5 +41,6 @@ private:
   QToolButton *m_play{};
   QToolButton *m_stop{};
   SeekBar *m_slider{};
+  bool m_hasSelectedCollection = false;
   bool m_skipNextPlaybackSliderUpdate = false;
 };
