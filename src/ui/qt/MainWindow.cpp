@@ -767,7 +767,9 @@ void MainWindow::configureWindowAgent() {
     m_windowAgent->setHitTestVisible(menuBarWidget, true);
   }
   if (QWidget *centerWidget = m_windowBar->centerWidget()) {
-    m_windowAgent->setHitTestVisible(centerWidget, true);
+    for (QWidget *child : centerWidget->findChildren<QWidget *>(Qt::FindDirectChildrenOnly)) {
+      m_windowAgent->setHitTestVisible(child, true);
+    }
   }
 
 #if defined(Q_OS_MACOS) || defined(Q_OS_MAC)
