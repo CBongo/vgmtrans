@@ -35,6 +35,7 @@ constexpr int kAccessoryButtonWidth = 22;
 constexpr int kAccessoryButtonHeight = 20;
 constexpr int kAccessoryIconSize = 16;
 constexpr int kFilterButtonLeftMargin = 6;
+constexpr int kLoggerMinimumWidth = 240;
 
 QString filterButtonText(int level) {
   switch (level) {
@@ -98,6 +99,7 @@ Logger::Logger(QWidget *parent)
     : QDockWidget("Log", parent), m_level(LOG_LEVEL_INFO), m_flushTimer(new QTimer(this)) {
   s_instance = this;
   setAllowedAreas(Qt::AllDockWidgetAreas);
+  setMinimumWidth(kLoggerMinimumWidth);
 
   createElements();
   connectElements();
