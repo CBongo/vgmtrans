@@ -39,6 +39,7 @@ target_sources(vgmtrans
     PlaybackControls.cpp
     Logger.cpp
     MainWindow.cpp
+    MainWindowDockLayout.cpp
     ManualCollectionDialog.cpp
     MenuBar.cpp
     QtVGMRoot.cpp
@@ -80,6 +81,7 @@ target_sources(vgmtrans
       PlaybackControls.h
       Logger.h
       MainWindow.h
+      MainWindowDockLayout.h
       ManualCollectionDialog.h
       MenuBar.h
       QtVGMRoot.h

@@ -1,0 +1,88 @@
+#pragma once
+
+#include <QByteArray>
+#include <QList>
+#include <QObject>
+
+class MainWindow;
+class QDockWidget;
+class QSize;
+class QTimer;
+class VGMCollListView;
+
+class MainWindowDockLayout final : public QObject {
+public:
+  struct Docks {
+    QDockWidget *rawFiles{};
+    QDockWidget *vgmFiles{};
+    QDockWidget *collections{};
+    QDockWidget *collectionContents{};
+    QDockWidget *logs{};
+    VGMCollListView *collectionListView{};
+  };
+
+  MainWindowDockLayout(MainWindow *window, Docks docks);
+
+  void restoreWindowGeometry() const;
+  void initializeAfterFirstShow();
+  void handleResize(const QSize& oldSize, const QSize& newSize);
+  void beginSeparatorDrag();
+  void handleSeparatorMouseMove();
+  void endSeparatorDrag();
+  void cancelInteraction();
+  void resetToDefault();
+  void saveOnClose();
+
+private:
+  enum ReconcileFlag : unsigned {
+    ReconcileNone = 0,
+    ReconcileSettleLayout = 1u << 0,
+    ReconcileApplyAreaTargets = 1u << 1,
+    ReconcileUpdateWidthLock = 1u << 2,
+  };
+
+  void connectSignals();
+  void activateMainLayout();
+  void captureLeftDockAreaWidth();
+  void captureBottomDockAreaHeight();
+  void snapshotDockAreaSizes(bool persistState);
+  void applyDockAreaTargets(bool applyLeftWidth, bool applyBottomHeight);
+  void captureCollectionContentsLeftDockHeight();
+  void applyPendingCollectionContentsBottomAreaHeight();
+  bool moveCollectionContentsToLeftDockIfNeeded();
+  bool moveCollectionContentsToBottomDockIfNeeded();
+  bool normalizeCollectionContentsDockPlacement();
+  void updateCollectionContentsWidthLock();
+  void applyDefaultDockLayout();
+  void restoreFloatingDocks();
+  void saveLayoutSettings() const;
+  void noteBottomDockWillBeShown();
+  void requestDockLayoutSettle(bool applyAreaTargets);
+  void queueReconcile(unsigned flags);
+  void processPendingReconcile();
+
+  MainWindow *m_window{};
+  QDockWidget *m_rawfileDock{};
+  QDockWidget *m_vgmfileDock{};
+  QDockWidget *m_collectionsDock{};
+  QDockWidget *m_collectionContentsDock{};
+  QDockWidget *m_loggerDock{};
+  VGMCollListView *m_collectionListView{};
+  QList<QDockWidget *> m_allDocks{};
+  QList<QDockWidget *> m_leftAreaDocks{};
+  QList<QDockWidget *> m_leftAreaPrimaryDocks{};
+  QList<QDockWidget *> m_bottomAreaDocks{};
+  QList<QDockWidget *> m_bottomCompanionDocks{};
+  QTimer *m_reconcileTimer{};
+  QByteArray m_defaultDockState{};
+  QByteArray m_savedDockState{};
+  int m_collectionContentsLeftDockHeight{};
+  int m_pendingCollectionContentsBottomHeight{};
+  int m_leftDockAreaPreferredWidth{};
+  int m_bottomDockAreaPreferredHeight{};
+  unsigned m_pendingReconcileFlags{};
+  bool m_adjustingDockLayout{};
+  bool m_restoringDockState{};
+  bool m_closingDown{};
+  bool m_dockSeparatorDragActive{};
+};
