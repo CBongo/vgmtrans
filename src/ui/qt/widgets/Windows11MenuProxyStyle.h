@@ -1,0 +1,22 @@
+/*
+* VGMTrans (c) 2002-2026
+* Licensed under the zlib license,
+* refer to the included LICENSE.txt file
+*/
+
+#pragma once
+
+#include <QProxyStyle>
+
+class QWidget;
+class QPainter;
+class QStyleOption;
+
+class Windows11MenuProxyStyle final : public QProxyStyle {
+public:
+  using QProxyStyle::QProxyStyle;
+
+  void polish(QWidget *widget) override;
+  void drawPrimitive(PrimitiveElement element, const QStyleOption *option, QPainter *painter,
+                     const QWidget *widget = nullptr) const override;
+};
