@@ -11,11 +11,41 @@
 #if defined(Q_OS_LINUX) && QT_CONFIG(opengl)
 #include <QRhiWidget>
 #endif
-#include <QStyleFactory>
+#include <QMenu>
+#include <QProxyStyle>
 #include <QTimer>
 #include <filesystem>
 #include "MainWindow.h"
 #include "QtVGMRoot.h"
+
+namespace {
+
+#if defined(Q_OS_WIN)
+constexpr int kWindows11MenuCornerRadius = 8;
+
+class Windows11MenuProxyStyle final : public QProxyStyle {
+public:
+  using QProxyStyle::QProxyStyle;
+
+  void drawPrimitive(PrimitiveElement element, const QStyleOption *option, QPainter *painter,
+                     const QWidget *widget = nullptr) const override {
+    if (element == PE_PanelMenu && option && painter && qobject_cast<const QMenu *>(widget)) {
+      QColor borderColor = option->palette.color(QPalette::WindowText);
+      borderColor.setAlpha(0x12);
+
+      painter->setPen(borderColor);
+      painter->setBrush(option->palette.brush(QPalette::Window));
+      painter->drawRoundedRect(option->rect.marginsRemoved(QMargins(2, 2, 2, 2)),
+                               kWindows11MenuCornerRadius, kWindows11MenuCornerRadius);
+      return;
+    }
+
+    QProxyStyle::drawPrimitive(element, option, painter, widget);
+  }
+};
+#endif
+
+}
 
 class VGMTransApplication final : public QApplication {
 public:
@@ -44,6 +74,12 @@ int main(int argc, char *argv[]) {
   VGMTransApplication app(argc, argv);
 
 #ifdef Q_OS_WIN
+  if (QStyle *style = app.style();
+      style && (style->inherits("QWindows11Style") ||
+                style->name().compare(QStringLiteral("windows11"), Qt::CaseInsensitive) == 0)) {
+    app.setStyle(new Windows11MenuProxyStyle(style->name()));
+  }
+
   QFont font = app.font();
   if (font.pointSizeF() > 0.0) {
     font.setPointSizeF(font.pointSizeF() + 1.0);
