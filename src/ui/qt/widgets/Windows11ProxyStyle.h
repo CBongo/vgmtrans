@@ -7,12 +7,12 @@
 #pragma once
 
 #include <QProxyStyle>
+#include <QStyleOption>
 
 class QWidget;
 class QPainter;
-class QStyleOption;
 
-class Windows11MenuProxyStyle final : public QProxyStyle {
+class Windows11ProxyStyle final : public QProxyStyle {
 public:
   using QProxyStyle::QProxyStyle;
 
@@ -23,4 +23,12 @@ public:
                    const QWidget *widget = nullptr) const override;
   void drawPrimitive(PrimitiveElement element, const QStyleOption *option, QPainter *painter,
                      const QWidget *widget = nullptr) const override;
+
+private:
+  struct CustomSelectionPaintContext {
+    const QWidget *widget = nullptr;
+    const QStyleOptionViewItem *viewItem = nullptr;
+  };
+
+  mutable CustomSelectionPaintContext m_customSelectionPaintContext;
 };

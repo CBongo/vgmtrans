@@ -49,6 +49,7 @@ target_sources(vgmtrans
     services/MenuManager.cpp
     services/Settings.cpp
     services/NotificationCenter.cpp
+    util/ColorHelpers.cpp
     util/Helpers.cpp
     util/UIHelpers.cpp
     widgets/ItemViewDensity.cpp
@@ -60,7 +61,7 @@ target_sources(vgmtrans
     widgets/ToastHost.cpp
     widgets/TableView.cpp
     widgets/TitleBar.cpp
-    widgets/Windows11MenuProxyStyle.cpp
+    widgets/Windows11ProxyStyle.cpp
     widgets/WindowBar.cpp
     workarea/hexview/HexView.cpp
     workarea/hexview/HexViewRhiHost.cpp
@@ -98,6 +99,7 @@ target_sources(vgmtrans
   PRIVATE
     FILE_SET headers_util TYPE HEADERS BASE_DIRS util
     FILES
+      util/ColorHelpers.h
       util/Colors.h
       util/Helpers.h
       util/LambdaEventFilter.h
@@ -117,7 +119,7 @@ target_sources(vgmtrans
       widgets/TitleBar.h
       widgets/Toast.h
       widgets/ToastHost.h
-      widgets/Windows11MenuProxyStyle.h
+      widgets/Windows11ProxyStyle.h
       widgets/WindowBar.h
   PRIVATE
     FILE_SET headers_workarea TYPE HEADERS BASE_DIRS workarea
