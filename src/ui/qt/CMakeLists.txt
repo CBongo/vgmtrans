@@ -39,6 +39,7 @@ target_sources(vgmtrans
     PlaybackControls.cpp
     Logger.cpp
     MainWindow.cpp
+    MainWindowDockLayout.cpp
     ManualCollectionDialog.cpp
     MenuBar.cpp
     QtVGMRoot.cpp
@@ -59,6 +60,7 @@ target_sources(vgmtrans
     widgets/ToastHost.cpp
     widgets/TableView.cpp
     widgets/TitleBar.cpp
+    widgets/Windows11MenuProxyStyle.cpp
     widgets/WindowBar.cpp
     workarea/hexview/HexView.cpp
     workarea/hexview/HexViewRhiHost.cpp
@@ -80,6 +82,7 @@ target_sources(vgmtrans
       PlaybackControls.h
       Logger.h
       MainWindow.h
+      MainWindowDockLayout.h
       ManualCollectionDialog.h
       MenuBar.h
       QtVGMRoot.h
@@ -114,6 +117,7 @@ target_sources(vgmtrans
       widgets/TitleBar.h
       widgets/Toast.h
       widgets/ToastHost.h
+      widgets/Windows11MenuProxyStyle.h
       widgets/WindowBar.h
   PRIVATE
     FILE_SET headers_workarea TYPE HEADERS BASE_DIRS workarea

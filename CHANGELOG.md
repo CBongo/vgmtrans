@@ -11,6 +11,7 @@
 ### Changed
 
 - The analysis (HexView) panel was fully rewritten and now uses GPU rendering. Sequence items in the hexview are highlighted as playback progresses. Alt-click on items to seek playback to them.
+- The dock layout and window chrome have been redesigned. Dock layout now persists between app runs and can be reset via a new menu action.
 - Improved accuracy of Nintendo DS (SDAT) instrument ADSR.
 - Improved Wayland support (drag and drop, sandbox).
 - The space-bar hotkey to toggle playback no longer requires clicking on a collection first.

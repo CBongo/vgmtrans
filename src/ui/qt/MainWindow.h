@@ -14,6 +14,7 @@
 class QWidget;
 class QDockWidget;
 class MenuBar;
+class MainWindowDockLayout;
 class PlaybackControls;
 class Logger;
 class VGMCollListView;
@@ -25,6 +26,7 @@ class QDragEnterEvent;
 class QDragMoveEvent;
 class QDragLeaveEvent;
 class QDropEvent;
+class QCloseEvent;
 class QResizeEvent;
 namespace QWK {
 class WidgetWindowAgent;
@@ -45,6 +47,7 @@ protected:
   void dragMoveEvent(QDragMoveEvent *event) override;
   void dragLeaveEvent(QDragLeaveEvent *event) override;
   void dropEvent(QDropEvent *event) override;
+  void closeEvent(QCloseEvent *event) override;
   void resizeEvent(QResizeEvent *event) override;
   bool eventFilter(QObject* obj, QEvent* event) override;
 
@@ -63,6 +66,7 @@ private:
   QDockWidget *m_rawfile_dock{};
   QDockWidget *m_vgmfile_dock{};
   QDockWidget *m_coll_dock{};
+  QDockWidget *m_coll_view_dock{};
   MenuBar *m_menu_bar{};
   PlaybackControls *m_playback_controls{};
   StatusBarContent *statusBarContent{};
@@ -73,4 +77,5 @@ private:
   WindowBar *m_windowBar{};
   QWidget *m_dragOverlay{};
   QWK::WidgetWindowAgent *m_windowAgent{};
+  MainWindowDockLayout *m_dockLayout{};
 };
